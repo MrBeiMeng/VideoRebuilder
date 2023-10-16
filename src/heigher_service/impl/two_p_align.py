@@ -40,15 +40,18 @@ class TwoPointAlignImpl(RunnerI):
         fps_b, (b_w, b_h) = self.b_iterator.get_video_info()
 
         higher_size = (a_w, a_h)
-        higher_fps = fps_a
+        lower_fps = fps_a
         # if b_w > a_w and b_h > a_h:
         #     higher_size = (b_w, b_h)
         #     higher_fps = fps_b
 
-        # out_put_path, fps, video_size
-        print(f"set output info: output_path {self.video_b_path},fps {higher_fps}, size {higher_size}")
+        if fps_a > fps_b:
+            lower_fps = fps_b
 
-        return VideoCreatorImpl(self.video_b_path, higher_fps, higher_size)
+        # out_put_path, fps, video_size
+        print(f"set output info: output_path {self.video_b_path},fps {lower_fps}, size {higher_size}")
+
+        return VideoCreatorImpl(self.video_b_path, lower_fps, higher_size)
 
     def run(self):
         # 遍历双指针。
@@ -93,21 +96,6 @@ class TwoPointAlignImpl(RunnerI):
                     feature_queue_b.append(feature_b)
             else:
                 got_flag = False
-                # 对比A与B积攒的
-                for index in range(len(feature_queue_b)):
-                    tmp_feature_b = feature_queue_b[index]
-                    distance = self.get_distance(feature_a, tmp_feature_b)
-                    if self.check_value(distance):
-                        got_flag = True
-                        # 重置了一下迭代器，让迭代器回到之前的某个点，至于为什么另一个加了一个点，因为这里左闭右开，为了对齐
-                        frame_queue_b.append(frame_b)
-                        self.b_iterator.add_prefix(frame_queue_b[index:])
-                        self.a_iterator.add_prefix([frame_a])
-                        frame_queue_a.clear()
-                        frame_queue_b.clear()
-                        feature_queue_a.clear()
-                        feature_queue_b.clear()
-                        break
 
                 # 对比B与A积攒的
                 for index in range(len(feature_queue_a)):
@@ -124,10 +112,41 @@ class TwoPointAlignImpl(RunnerI):
                         feature_queue_b.clear()
                         break
 
+                # 对比A与B积攒的
+                for index in range(len(feature_queue_b)):
+                    tmp_feature_b = feature_queue_b[index]
+                    distance = self.get_distance(feature_a, tmp_feature_b)
+                    if self.check_value(distance):
+                        got_flag = True
+                        # 重置了一下迭代器，让迭代器回到之前的某个点，至于为什么另一个加了一个点，因为这里左闭右开，为了对齐
+                        frame_queue_b.append(frame_b)
+                        self.b_iterator.add_prefix(frame_queue_b[index:])
+                        self.a_iterator.add_prefix([frame_a])
+                        frame_queue_a.clear()
+                        frame_queue_b.clear()
+                        feature_queue_a.clear()
+                        feature_queue_b.clear()
+                        break
+
+                distance = self.get_distance(feature_a, feature_b)
+
+                print(distance)
+
+                if self.check_value(distance):
+                    self.pbar.update(1)
+                    self.write_method(frame_a, frame_b)  # 进行写操作。这里拿到的就是对齐的两帧
+                    got_flag = True
+                    frame_queue_a.clear()
+                    frame_queue_b.clear()
+                    feature_queue_a.clear()
+                    feature_queue_b.clear()
+
                 if not got_flag:
                     # 未对比成功
                     frame_queue_a.append(frame_a)
                     frame_queue_b.append(frame_b)
+                    feature_queue_a.append(feature_a)
+                    feature_queue_b.append(feature_b)
 
         self.done_method()
 
@@ -136,7 +155,7 @@ class TwoPointAlignImpl(RunnerI):
         return tf.norm(feature_a - feature_b).numpy()
 
     @staticmethod
-    def check_value(num: int):
+    def check_value(num):
         return num <= 30
 
     def get_feature(self, frame) -> np.ndarray:

@@ -20,7 +20,7 @@ class TestFastDtwShowImpl(TestCase):
         logging.getLogger('sqlalchemy.pool').propagate = False
         logging.getLogger('sqlalchemy.orm').propagate = False
 
-        self.video_path_a = "D:\\code\\python\\pycharm\\VidelAligner\\static\\video\\WoAiBaoMiHuaTest1.mp4"
+        self.video_path_a = "E:/xunleiyunpan/我爱爆米花高清23fs.mkv"
         # self.video_path_b = "video_path_b"
 
         self.video_a_iterator: VideoIteratorIndexSearchI = VideoIteratorIndexSearchImpl(self.video_path_a)
