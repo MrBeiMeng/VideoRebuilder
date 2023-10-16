@@ -33,8 +33,8 @@ class TestTwoPointAlignImpl(TestCase):
 
     def test_run(self):
         # self.fail()
-        # runner: RunnerI = TwoPointAlignImpl('E:/data/WoAiDaMaoYangShi.mp4', 'E:/data/WoAiDaMaoCeShi.mp4')
-        runner: RunnerI = TwoPointAlignImpl(
-            'D:/code/python/pycharm/VideoFrameAligner/static/我爱爆米花-原版-开车前.mp4',
-            'D:/code/python/pycharm/VideoFrameAligner/static/央配-我爱爆米花-开车前.mp4')
+        runner: RunnerI = TwoPointAlignImpl('E:/data/WoAiDaMaoYangShi.mp4', 'E:/data/WoAiDaMaoCeShi.mp4')
+        # runner: RunnerI = TwoPointAlignImpl(
+        #     'D:/code/python/pycharm/VideoFrameAligner/static/我爱爆米花-原版-开车前.mp4',
+        #     'D:/code/python/pycharm/VideoFrameAligner/static/央配-我爱爆米花-开车前.mp4')
         runner.run()

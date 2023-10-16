@@ -71,8 +71,16 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
         if len(arr) == 0:
             raise Exception("你加入了一个长度为0的数组")
 
-        for frame in arr:
-            self.prefix_list.insert(0, frame)
+        if len(self.prefix_list) == 0:
+            for frame in arr:
+                self.prefix_list.append(frame)
+        else:
+            tmp_prefix = []
+            for frame in arr:
+                tmp_prefix.append(frame)
+            for p_frame in self.prefix_list:
+                tmp_prefix.append(p_frame)
+            self.prefix_list = tmp_prefix
 
         self.current_index -= len(arr)
 
