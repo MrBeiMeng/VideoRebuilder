@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 from src.heigher_service.runner_interface import RunnerI
-from src.service.impl.video_iterator_impl import VideoIteratorPreFixImpl
-from src.service.video_iterator_interface import VideoIteratorPreFixI
+from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl
+from src.service.video_iterator_interface import VideoIteratorPrefixI
 
 # VGG16特征提取器的实现
 import keras.applications as ka
@@ -15,8 +16,8 @@ class TwoPointAlignImpl(RunnerI):
 
     def __init__(self, video_a_path, video_b_path):
         # 初始化 迭代器 对象
-        self.a_iterator: VideoIteratorPreFixI = VideoIteratorPreFixImpl(video_a_path)
-        self.b_iterator: VideoIteratorPreFixI = VideoIteratorPreFixImpl(video_b_path)
+        self.a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(video_a_path)
+        self.b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(video_b_path)
         self.model = ka.VGG16(include_top=False, weights='imagenet', pooling='avg')
 
         _, (a_w, a_h) = self.a_iterator.get_video_info()
@@ -25,6 +26,8 @@ class TwoPointAlignImpl(RunnerI):
         self.common_size = (a_w, a_h)
         if b_w < a_w and b_h < a_h:
             self.common_size = (b_w, b_h)
+
+        self.pbar = tqdm(total=self.b_iterator.get_total_f_num(), desc="视频对比", unit="帧")
 
     @staticmethod
     def get_distance(feature_a, feature_b) -> int:
@@ -51,10 +54,11 @@ class TwoPointAlignImpl(RunnerI):
         feature_queue_a, feature_queue_b = [], []
 
         while True:
-            print(
-                f"len queue_a,b {len(frame_queue_a)},{len(frame_queue_b)}\t video A {self.a_iterator.get_current_index()}/"
+            self.pbar.set_postfix_str(s = f"len queue_a,b {len(frame_queue_a)},{len(frame_queue_b)}\t video A {self.a_iterator.get_current_index()}/"
                 f"{self.a_iterator.get_total_f_num()}\t video B {self.b_iterator.get_current_index()}/"
                 f"{self.b_iterator.get_total_f_num()}")
+            # print(
+            #     )
             try:
                 frame_a = next(self.a_iterator)
                 frame_b = next(self.b_iterator)
@@ -75,8 +79,9 @@ class TwoPointAlignImpl(RunnerI):
                 print(distance)
 
                 if self.check_value(distance):
-                    # todo 进行写操作
+                    self.pbar.update(1)
 
+                    # todo 进行写操作
                     pass
                 else:
                     frame_queue_a.append(frame_a)
@@ -84,9 +89,7 @@ class TwoPointAlignImpl(RunnerI):
                     feature_queue_a.append(feature_a)
                     feature_queue_b.append(feature_b)
             else:
-
                 got_flag = False
-
                 # 对比A与B积攒的
                 for index in range(len(feature_queue_b)):
                     tmp_feature_b = feature_queue_b[index]
@@ -102,6 +105,7 @@ class TwoPointAlignImpl(RunnerI):
                         feature_queue_a.clear()
                         feature_queue_b.clear()
                         break
+
                 # 对比B与A积攒的
                 for index in range(len(feature_queue_a)):
                     tmp_feature_a = feature_queue_a[index]
@@ -122,4 +126,5 @@ class TwoPointAlignImpl(RunnerI):
                     frame_queue_a.append(frame_a)
                     frame_queue_b.append(frame_b)
 
+        self.pbar.close()
         print("结束")

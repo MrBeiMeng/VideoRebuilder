@@ -3,7 +3,7 @@ from typing import List
 import cv2
 import numpy as np
 
-from src.service.video_iterator_interface import VideoIteratorI, VideoIteratorPreFixI
+from src.service.video_iterator_interface import VideoIteratorI, VideoIteratorPrefixI
 
 
 class VideoIteratorImpl(VideoIteratorI):
@@ -32,7 +32,7 @@ class VideoIteratorImpl(VideoIteratorI):
 
     def __next__(self) -> np.ndarray:
 
-        if self.current_index <= self.total_f_size:
+        if self.current_index < self.total_f_size:
             ret, frame = self.cap.read()
             if ret:
                 self.current_index += 1
@@ -50,7 +50,7 @@ class VideoIteratorImpl(VideoIteratorI):
         return self.fps_a, (self.width_a, self.height_a)
 
 
-class VideoIteratorPreFixImpl(VideoIteratorPreFixI, VideoIteratorImpl):
+class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
 
     def __init__(self, video_path):
 
@@ -72,11 +72,11 @@ class VideoIteratorPreFixImpl(VideoIteratorPreFixI, VideoIteratorImpl):
             raise Exception("你加入了一个长度为0的数组")
 
         for frame in arr:
-            self.prefix_list.append(frame)
+            self.prefix_list.insert(0, frame)
 
         self.current_index -= len(arr)
 
-        print(f"added prefix{len(arr)}")
+        print(f"added prefix{len(arr)}", end='')
 
         if self.current_index < 0:
             print("这是因为加入了前置prefix数组,放心，不影响的。")
