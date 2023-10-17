@@ -22,7 +22,7 @@ class VideoIteratorI(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_video_info(self) -> (int, (int, int)):
+    def get_video_info(self) -> (float, (int, int)):
         pass
 
 

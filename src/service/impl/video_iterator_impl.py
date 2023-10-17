@@ -17,7 +17,7 @@ class VideoIteratorImpl(VideoIteratorI):
         self.video_path = video_path
 
         # 获取视频的帧率和尺寸
-        self.fps_a = int(self.cap.get(cv2.CAP_PROP_FPS))
+        self.fps_a = self.cap.get(cv2.CAP_PROP_FPS)
         self.width_a = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height_a = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -45,7 +45,7 @@ class VideoIteratorImpl(VideoIteratorI):
     def get_total_f_num(self) -> int:
         return self.total_f_size
 
-    def get_video_info(self) -> (int, (int, int)):
+    def get_video_info(self) -> (float, (int, int)):
         # 获取视频的帧率和尺寸
         return self.fps_a, (self.width_a, self.height_a)
 
