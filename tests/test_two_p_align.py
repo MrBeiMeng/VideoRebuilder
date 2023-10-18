@@ -12,7 +12,7 @@ from src.service.video_iterator_interface import VideoIteratorPrefixI
 class TestTwoPointAlignImpl(TestCase):
 
     def test_iterator(self):
-        b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl('E:/xunleiyunpan/我爱爆米花高清23fs.mkv')
+        b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl('E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E04.Operation.Plush.and.Cover.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv')
 
         last_frame_list = []
 
@@ -24,6 +24,10 @@ class TestTwoPointAlignImpl(TestCase):
                 break
 
             print(f"Index [{b_iterator.get_current_index()}/{b_iterator.get_total_f_num()}]")
+
+            if b_iterator.get_current_index() == 115:
+                cv2.imwrite('img_115_.png', frame)
+                break
 
             cv2.imshow('frame b', frame)
             cv2.waitKey(40)

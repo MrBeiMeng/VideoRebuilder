@@ -139,10 +139,11 @@ class SiftModelSingleImpl:
 class TwoPFastDtwSiftImpl(RunnerI):
 
     def __init__(self, v_a_path, v_b_path, a_iterator=None, b_iterator=None, model=None, output_path=None,
-                 output_fps=None, output_size=None, pool_size=None):
+                 output_fps=None, output_size=None, pool_size=None, debug_window=True):
         self.v_a_path = v_a_path
         self.v_b_path = v_b_path
         self.pool_size = pool_size or 100
+        self.debug_window = debug_window
 
         self.a_iterator: VideoIteratorPrefixI = a_iterator or VideoIteratorPrefixImpl(self.v_a_path)
         self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixImpl(self.v_b_path)
@@ -181,7 +182,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
     def get_feature(self, frame) -> np.ndarray:
 
-        if frame.shape[1] != self.common_size[0] and frame.shape[0] != self.common_size[1]:
+        if frame.shape[1] > self.common_size[0] and frame.shape[0] > self.common_size[1]:
             # 计算视频B的长宽比
             aspect_ratio_b = self.common_size[0] / self.common_size[1]  # 宽度/高度
 
@@ -206,7 +207,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
             cropped_frame_a = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
 
             # 调整截取后的frame_a的分辨率以匹配frame_b
-            resized_frame_a = cv2.resize(cropped_frame_a, (self.common_size[0], self.common_size[1]),
+            resized_frame_a = cv2.resize(cropped_frame_a, (int(self.common_size[0] / 2), int(self.common_size[1] / 2)),
                                          interpolation=cv2.INTER_AREA)
             # resized_frame_b = cv2.resize(frame_b, (cropped_frame_a.shape[1], cropped_frame_a.shape[0]),
             #                              interpolation=cv2.INTER_AREA)
@@ -214,7 +215,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
             return resized_frame_a
         else:
             frame = cv2.resize(frame,
-                               (int(self.common_size[0] / 1), int(self.common_size[1] / 1)))  # 调整帧大小来降低计算量
+                               (int(self.common_size[0] / 2), int(self.common_size[1] / 2)))  # 调整帧大小来降低计算量
         return frame
 
     def _cut_frame(self, frame_a, frame_b):
@@ -267,10 +268,10 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
             # print(similarity)
 
-            # # Draw matches
-            # img_matches = cv2.drawMatches(feature_a, keypoints1, feature_b, keypoints2, good_matches, outImg=None)
-            # cv2.imshow('Matches', img_matches)
-            # cv2.waitKey(1)
+            # Draw matches
+            img_matches = cv2.drawMatches(feature_a, keypoints1, feature_b, keypoints2, good_matches, outImg=None)
+            cv2.imshow('Matches', img_matches)
+            cv2.waitKey(1)
         except Exception as e:
             print(f"出现错误！！{e.args}")
             return 30
@@ -327,11 +328,6 @@ class TwoPFastDtwSiftImpl(RunnerI):
                 total_path_num = len(path)
                 for i in range(total_path_num):
                     index_a, index_b = path[i]
-                    if total_path_num - i <= 50:
-                        self.a_iterator.add_prefix(frame_queue_a[index_a:])
-                        self.b_iterator.add_prefix(frame_queue_b[index_b:])
-                        print("break 。50 帧冗余。")
-                        break
 
                     if p_set.exist((index_a, index_b)):
                         p_set.add((index_a, index_b))
@@ -343,8 +339,15 @@ class TwoPFastDtwSiftImpl(RunnerI):
                         self.show_when_write(frame_queue_a[same_index_a], frame_queue_b[same_index_b])
                         self.creator.write_frame(frame_queue_a[same_index_a])  # todo 测试阶段不用生成
                         # ---
-
-                    p_set.add((index_a, index_b))
+                        if total_path_num - i <= 50:  # 如果没有重复的，留下50帧荣誉
+                            self.a_iterator.add_prefix(frame_queue_a[index_a:])
+                            self.b_iterator.add_prefix(frame_queue_b[index_b:])
+                            print("break 50 帧冗余")
+                            p_set.pop()
+                            break
+                        p_set.add((index_a, index_b))  # 和下面重复了，这里是为了 50 帧 break 的时候不要重复添加帧
+                    else:
+                        p_set.add((index_a, index_b))
 
                 if not p_set.is_empty():  # 其实这里不可能是empty，但是最后一对无法判断是否匹配。所以索性没问题
                     a_index_list, b_index_list = p_set.pop()
@@ -358,12 +361,13 @@ class TwoPFastDtwSiftImpl(RunnerI):
                     self.a_iterator.add_prefix(tmp_frame_a_list)
                     self.b_iterator.add_prefix(tmp_frame_b_list)
 
-                    # 清空缓存
-                    frame_queue_a.clear()
-                    frame_queue_b.clear()
-                    feature_queue_a.clear()
-                    feature_queue_b.clear()
+                # 清空缓存
+                frame_queue_a.clear()
+                frame_queue_b.clear()
+                feature_queue_a.clear()
+                feature_queue_b.clear()
 
+        print("收尾阶段")
         # feature 队列仍有剩余
         # 使用 fastdtw 函数计算 DTW 对齐
         distance, path = fastdtw(feature_queue_a, feature_queue_b, dist=self.get_distance)
@@ -372,11 +376,13 @@ class TwoPFastDtwSiftImpl(RunnerI):
             if p_set.exist((index_a, index_b)):
                 p_set.add((index_a, index_b))
                 continue
-            same_index_a, same_index_b = p_set.handle(feature_queue_a, feature_queue_b, self.get_distance)
-            # 写操作
-            self.show_when_write(frame_queue_a[same_index_a], frame_queue_b[same_index_b])
-            self.creator.write_frame(frame_queue_a[same_index_a])  # todo 测试阶段不用生成
-            # ---
+
+            if not p_set.is_empty():
+                same_index_a, same_index_b = p_set.handle(feature_queue_a, feature_queue_b, self.get_distance)
+                # 写操作
+                self.show_when_write(frame_queue_a[same_index_a], frame_queue_b[same_index_b])
+                self.creator.write_frame(frame_queue_a[same_index_a])  # todo 测试阶段不用生成
+                # ---
             p_set.add((index_a, index_b))
 
         same_index_a, same_index_b = p_set.handle(feature_queue_a, feature_queue_b, self.get_distance)
@@ -394,19 +400,22 @@ class TwoPFastDtwSiftImpl(RunnerI):
         print("结束")
 
     def show_when_write(self, frame_a, frame_b):
-        # 确保两个帧的维度相同
-        if frame_a.shape != frame_b.shape:
-            # print("Frames have different dimensions, resizing frame2 to match frame1")
-            frame_a = cv2.resize(frame_a, (frame_b.shape[1], frame_b.shape[0]))
 
-        # 使用numpy的hstack函数水平堆叠两个帧
-        merged_frame = np.hstack((frame_a, frame_b))
+        if self.debug_window:
+            # 确保两个帧的维度相同
+            if frame_a.shape != frame_b.shape:
+                # print("Frames have different dimensions, resizing frame2 to match frame1")
+                frame_a = cv2.resize(frame_a, (frame_b.shape[1], frame_b.shape[0]))
 
-        # 使用cv2.imshow展示合并后的帧
-        cv2.imshow('writing Frame', merged_frame)
-        cv2.waitKey(1)
+            # 使用numpy的hstack函数水平堆叠两个帧
+            merged_frame = np.hstack((frame_a, frame_b))
+
+            # 使用cv2.imshow展示合并后的帧
+            cv2.imshow('writing Frame', merged_frame)
+            cv2.waitKey(1)
 
     def show_frames(self, frame_a, frame_b):
-        cv2.imshow("rolling A", frame_a)
-        cv2.imshow("rolling B", frame_b)
-        cv2.waitKey(1)
+        if self.debug_window:
+            cv2.imshow("rolling A", frame_a)
+            cv2.imshow("rolling B", frame_b)
+            cv2.waitKey(1)
