@@ -37,8 +37,16 @@ if __name__ == '__main__':
     #     'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E07.Assault.and.Batteries.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
     #     'E:/data/央视配音24fs/7 抢电池大作战 (Assault & Batteries).mp4')
 
+    # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(
+    #     'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E08.Penguiner.Takes.All.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
+    #     'E:/data/央视配音24fs/8 企鹅的胜利 (Penguiner Takes All).mp4')
+
+    # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(
+    #     'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E03.Haunted.Habitat.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
+    #     'E:/data/央视配音24fs/3 鬼哭神嚎 (Haunted Habitat).mp4')
+
     runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(
-        'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E08.Penguiner.Takes.All.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
-        'E:/data/央视配音24fs/8 企鹅的胜利 (Penguiner Takes All).mp4')
+        'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E01.Gone.in.a.Flash.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
+        'E:/data/央视配音24fs/1 我爱大毛 Gone In A Flash.mp4')
 
     runner.run()
