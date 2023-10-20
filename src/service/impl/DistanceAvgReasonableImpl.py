@@ -16,6 +16,7 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
         # self._sorted_distances = []  # 排序的distance
 
     def upd_reasonable_avg(self, avg: int):
+        print(f"更新匹配阈值 {avg}")
         self.reasonable_avg += avg
 
     # def insert_sorted(self, distance):

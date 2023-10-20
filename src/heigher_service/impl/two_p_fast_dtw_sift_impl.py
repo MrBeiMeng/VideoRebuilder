@@ -159,7 +159,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
         self.pbar = tqdm(total=range_time, desc="fast dtw and sift 逐帧对比", unit="帧")
 
         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-            reasonable_avg=85)  # 可以修改参数
+            reasonable_avg=84)  # 可以修改参数
 
     def get_small_size(self):
         fps, (a_w, a_h) = self.a_iterator.get_video_info()
@@ -374,7 +374,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                 for i in range(total_path_num):
                     index_a, index_b = path[i]
 
-                    stopping_flag = total_path_num - i <= 50
+                    stopping_flag = total_path_num - i <= 20
                     jump_a_flag = False
 
                     if p_set.exist((index_a, index_b)):
@@ -401,25 +401,26 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                 # ---
 
                             # --- 跳A 开始
-                            print("开始跳A")
+                            print("开始尝试跳A")
                             if tmp_a_index < len(frame_queue_a):
                                 self.a_iterator.add_prefix(frame_queue_a[tmp_a_index:])
                             if tmp_b_index < len(frame_queue_b):
                                 self.b_iterator.add_prefix(frame_queue_b[tmp_b_index:])
 
-                            tmp_frame_a_queue, tmp_frame_b_queue = [], []
-
                             frame_b = next(self.b_iterator)
-                            tmp_frame_b_queue.append(frame_b)
                             feature_b = self.get_feature(frame_b)
 
                             tmp_count = 0
 
+                            temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
+
+                            for _ in range(self.a_iterator.get_current_index() + 1):
+                                next(temp_a_iterator)
+
                             while True:  # 跳A ，从这个点开始，B 不动，A向后遍历 。直到满足条件
                                 try:
-                                    frame_a = next(self.a_iterator)
+                                    frame_a = next(temp_a_iterator)
                                     feature_a = self.get_feature(frame_a)
-                                    tmp_frame_a_queue.append(frame_a)
                                     tmp_count += 1
 
                                     feature_a, tmp_feature_b = self._cut_frame(feature_a, feature_b)
@@ -427,11 +428,15 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                     distance = self.get_distance(feature_a, tmp_feature_b)
 
                                     if distance < 70:
-                                        self.a_iterator.add_prefix([frame_a])
+                                        print("尝试成功")
+                                        # self.a_iterator.add_prefix([frame_a])
                                         self.b_iterator.add_prefix([frame_b])
 
+                                        for _ in range(tmp_count - 1):  # 记录数字。这里不需要缓存了，另一个迭代器尝试匹配，成功了就行
+                                            next(self.a_iterator)
+
                                         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-                                            reasonable_avg=85)  # 可以修改参数
+                                            reasonable_avg=84)  # 可以修改参数
 
                                         print(f"跳帧成功 A跳{tmp_count}帧")
                                         break
@@ -440,13 +445,13 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                         raise StopIteration
 
                                 except StopIteration:
-                                    print("跳A失败")
+                                    print("尝试失败")
                                     self.distance_avg_reasonable_check.upd_reasonable_avg(3)
-                                    self.a_iterator.add_prefix(tmp_frame_a_queue)
-                                    self.b_iterator.add_prefix(tmp_frame_b_queue)
-                                    tmp_frame_a_queue.clear()
-                                    tmp_frame_b_queue.clear()
+                                    # self.a_iterator.add_prefix(tmp_frame_a_queue)
+                                    self.b_iterator.add_prefix([frame_b])
                                     break
+
+                            # 如果发现确实可以跳A，在进行跳A
 
                             # --- 跳A结束
 

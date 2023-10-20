@@ -64,7 +64,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
                                               v_b_path=self.video_b_path,
                                               a_iterator=a_iterator,
                                               output_path=output_path,
-                                              pool_size=300)
+                                              pool_size=200)
 
         runner.run()
 
