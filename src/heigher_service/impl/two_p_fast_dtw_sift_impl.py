@@ -14,6 +14,10 @@ from src.service.impl.video_creator_impl import VideoCreatorImpl
 from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl
 from src.service.video_creator_interface import VideoCreatorI
 from src.service.video_iterator_interface import VideoIteratorPrefixI
+from skimage import io, color, feature, exposure
+from scipy.spatial import distance as distance_tool
+
+from skimage.metrics import structural_similarity as compare_ssim
 
 
 class PathSetI(metaclass=abc.ABCMeta):
@@ -124,6 +128,20 @@ class PathSetImpl(PathSetI):
         return len(self._a_index_list) == 0 and len(self._b_index_list) == 0
 
 
+class OrbModelSingleImpl:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.model = cv2.ORB_create()
+            print("inited model")
+        return cls._instance
+
+    def get_model(self):
+        return self.model
+
+
 class SiftModelSingleImpl:
     _instance = None
 
@@ -159,7 +177,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
         self.pbar = tqdm(total=range_time, desc="fast dtw and sift 逐帧对比", unit="帧")
 
         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-            reasonable_avg=84)  # 可以修改参数
+            reasonable_avg=20)  # 可以修改参数
 
     def get_small_size(self):
         fps, (a_w, a_h) = self.a_iterator.get_video_info()
@@ -220,13 +238,23 @@ class TwoPFastDtwSiftImpl(RunnerI):
             #                              interpolation=cv2.INTER_AREA)
 
             resized_frame_a = cv2.cvtColor(resized_frame_a, cv2.COLOR_BGR2GRAY)
+            # 归一化
+            # normalized_image = cv2.normalize(resized_frame_a, None, 0, 255, cv2.NORM_MINMAX)
+            # 直方图均衡化
+            equalized_image_a = cv2.equalizeHist(resized_frame_a)
+            blurred_frame_a = cv2.GaussianBlur(equalized_image_a, (51, 51), 0)
 
-            return resized_frame_a
+            return blurred_frame_a
         else:
             frame = cv2.resize(frame,
                                (int(self.common_size[0] / 2), int(self.common_size[1] / 2)))  # 调整帧大小来降低计算量
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # 归一化
+            # normalized_image = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
+            # 直方图均衡化
+            frame = cv2.equalizeHist(frame)
+            frame = cv2.GaussianBlur(frame, (51, 51), 0)
 
         return frame
 
@@ -261,68 +289,80 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
     @staticmethod
     def get_distance(feature_a, feature_b) -> float:
-        global descriptors1, descriptors2, keypoints1, keypoints2, good_matches
-        try:
-            feature_a = feature_a.astype(np.uint8)
-            feature_b = feature_b.astype(np.uint8)
+        feature_a = feature_a.astype(np.uint8)
+        feature_b = feature_b.astype(np.uint8)
+        # global descriptors1, descriptors2, keypoints1, keypoints2
+        # try:
+        #     feature_a = feature_a.astype(np.uint8)
+        #     feature_b = feature_b.astype(np.uint8)
+        #
+        #     # Find the keypoints and descriptors with SIFT
+        #     keypoints1, descriptors1 = OrbModelSingleImpl().get_model().detectAndCompute(feature_a, None)
+        #     keypoints2, descriptors2 = OrbModelSingleImpl().get_model().detectAndCompute(feature_b, None)
+        # except Exception as e:
+        #     print(e.args)
+        #
+        # if descriptors1 is None or descriptors2 is None or descriptors1.size == 0 or descriptors2.size == 0:
+        #     # print("Descriptors are empty.")
+        #     if descriptors1 is None:
+        #         return 80
+        #     if descriptors2 is None:
+        #         return 60
+        # try:
+        #     # Use BFMatcher to find matches
+        #     bf = cv2.BFMatcher()
+        #     matches = bf.knnMatch(descriptors1, descriptors2, k=2)
+        #
+        #     # Apply ratio test
+        #     good_matches = []
+        #     # for element in matches: # 修改可能导致异常
+        #     #     try:
+        #     #         m, n = element
+        #     #         if m.distance < 0.88 * n.distance:
+        #     #             good_matches.append(m)
+        #     #     except Exception as e:
+        #     #         print('catch err', end='')
+        #     #         continue
+        #
+        #     for m, n in matches:
+        #         if m.distance < 0.88 * n.distance:
+        #             good_matches.append(m)
+        #
+        #     # Print the number of good matches
+        #     # print(len(good_matches))
+        #
+        #     similarity = 0  # 如果黑屏则确认匹配
+        #     if (len(keypoints1) + len(keypoints2)) != 0:
+        #         similarity = len(good_matches) / (len(keypoints1) + len(keypoints2))
+        #
+        #     # print(similarity)
+        #
+        # except Exception as e:
+        #     print(f"出现异常 {e.args}")
+        #     # print(f"-/-", end='')  # todo 有时间看看
+        #     # for m, n in matches: 报的异常：('not enough values to unpack (expected 2, got 1)',) 没敢改因为怕影响结果
+        #     similarity = 0.2
+        #
+        # distance = (1-similarity)*100
 
-            # Find the keypoints and descriptors with SIFT
-            keypoints1, descriptors1 = SiftModelSingleImpl().get_model().detectAndCompute(feature_a, None)
-            keypoints2, descriptors2 = SiftModelSingleImpl().get_model().detectAndCompute(feature_b, None)
-        except Exception as e:
-            print(e.args)
+        # # 计算图像的直方图
+        # hist1 = cv2.calcHist([feature_a], [0], None, [256], [0, 256])
+        # hist2 = cv2.calcHist([feature_b], [0], None, [256], [0, 256])
+        #
+        # # 归一化直方图
+        # hist1 = cv2.normalize(hist1, hist1, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+        # hist2 = cv2.normalize(hist2, hist2, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+        #
+        # # 比较直方图
+        # correl = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
 
-        if descriptors1 is None or descriptors2 is None or descriptors1.size == 0 or descriptors2.size == 0:
-            # print("Descriptors are empty.")
-            if descriptors1 is None:
-                return 80
-            if descriptors2 is None:
-                return 60
-        try:
-            # Use BFMatcher to find matches
-            bf = cv2.BFMatcher()
-            matches = bf.knnMatch(descriptors1, descriptors2, k=2)
+        # 计算SSIM
+        ssim_value, _ = compare_ssim(feature_a, feature_b, full=True)
 
-            # Apply ratio test
-            good_matches = []
-            # for element in matches: # 修改可能导致异常
-            #     try:
-            #         m, n = element
-            #         if m.distance < 0.88 * n.distance:
-            #             good_matches.append(m)
-            #     except Exception as e:
-            #         print('catch err', end='')
-            #         continue
-
-            for m, n in matches:
-                if m.distance < 0.88 * n.distance:
-                    good_matches.append(m)
-
-            # Print the number of good matches
-            # print(len(good_matches))
-
-            similarity = 0  # 如果黑屏则确认匹配
-            if (len(keypoints1) + len(keypoints2)) != 0:
-                similarity = len(good_matches) / (len(keypoints1) + len(keypoints2))
-
-            # print(similarity)
-
-        except Exception as e:
-            print(f"出现异常 {e.args}")
-            # print(f"-/-", end='')  # todo 有时间看看
-            # for m, n in matches: 报的异常：('not enough values to unpack (expected 2, got 1)',) 没敢改因为怕影响结果
-            similarity = 0.2
-
-        distance = 1 - similarity  # 可以加上一个 判断。
-
-        if distance > 0.8:
-            distance = 1
-
-        distance *= 100
+        distance = ((2 - (ssim_value + 1)) / 2) * 100
 
         # Draw matches
-        TwoPFastDtwSiftImpl.draw_matches(distance=distance, feature_a=feature_a, feature_b=feature_b,
-                                         good_matches=good_matches, keypoints1=keypoints1, keypoints2=keypoints2)
+        # TwoPFastDtwSiftImpl.draw_matches(distance=distance, feature_a=feature_a, feature_b=feature_b)
 
         return distance
 
@@ -427,7 +467,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
                                     distance = self.get_distance(feature_a, tmp_feature_b)
 
-                                    if distance < 70:
+                                    if distance < 15:
                                         print("尝试成功")
                                         # self.a_iterator.add_prefix([frame_a])
                                         self.b_iterator.add_prefix([frame_b])
@@ -436,7 +476,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                             next(self.a_iterator)
 
                                         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-                                            reasonable_avg=84)  # 可以修改参数
+                                            reasonable_avg=20)  # 可以修改参数
 
                                         print(f"跳帧成功 A跳{tmp_count}帧")
                                         break
@@ -478,6 +518,9 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                     self.creator.write_frame(frame_queue_a[first_a_index])  # todo 测试阶段不用生成
                                     write_size += 1
                                     # ---
+
+                        # if distance < 50:
+                        #     break
 
                         if not jump_a_flag and stopping_flag:  # 如果没有重复的，留下50帧荣誉
                             self.a_iterator.add_prefix(frame_queue_a[index_a:])

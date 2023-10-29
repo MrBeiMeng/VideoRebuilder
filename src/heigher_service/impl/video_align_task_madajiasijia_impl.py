@@ -44,7 +44,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
             if i == 115:
                 # 对比两帧差异
                 # 使用cv2.imread()函数读取图片
-                image = cv2.imread('D:/code/python/pycharm/VidelAligner/static/img/img_115_.png')
+                image = cv2.imread('E:/RemovedD/code/python/pycharm/VidelAligner/tests/img_115_.png')
 
                 # cv2.imshow('frame A', image)
                 # cv2.imshow('frame B', frame)
