@@ -16,9 +16,10 @@ import keras.applications as ka
 
 
 class VideoAlignTaskMadajiasijiaImpl(RunnerI):
-    def __init__(self, video_a_path, video_b_path):
+    def __init__(self, video_a_path, video_b_path, reasonable_avg=None):
         self.video_a_path = video_a_path
         self.video_b_path = video_b_path
+        self.reasonable_avg = reasonable_avg
 
     @staticmethod
     def _get_unique_filename(filename: str) -> str:
@@ -32,7 +33,12 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
 
     def run(self):
         a_iterator = VideoIteratorPrefixImpl(video_path=self.video_a_path)
-        output_path = self._get_unique_filename(self.video_b_path)
+        # output_path = self._get_unique_filename(self.video_b_path)
+
+        base_name = os.path.basename(self.video_b_path)
+
+        output_path = f"E:/360MoveData/Users/MrB/Desktop/result/{base_name}"
+
         # model = ka.VGG16(include_top=False, weights='imagenet', pooling='avg')
 
         for i in range(360):
@@ -64,7 +70,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
                                               v_b_path=self.video_b_path,
                                               a_iterator=a_iterator,
                                               output_path=output_path,
-                                              pool_size=200)
+                                              pool_size=200, reasonable_avg=self.reasonable_avg)
 
         runner.run()
 

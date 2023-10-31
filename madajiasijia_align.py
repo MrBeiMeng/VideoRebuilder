@@ -8,9 +8,9 @@ videos = [('E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E17.Go.Fish.1080p.WEB-
               'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E16.Popcorn.Panic.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
               'E:/data/央视配音24fs/16 我爱爆米花(Popcorn Panic).mp4'), (
               'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E15.Little.Zoo.Coupe.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
-              'E:/data/央视配音24fs/15 不吐不快 (All Choked Up).mp4'), (
-              'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E14.All.Choked.Up.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
               'E:/data/央视配音24fs/14 动物园赛车 (Little Zoo Coupe).mp4'), (
+              'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E14.All.Choked.Up.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
+              'E:/data/央视配音24fs/15 不吐不快 (All Choked Up).mp4'), (
               'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E13.Kingdom.Come.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
               'E:/data/央视配音24fs/13 接受王国 (Kingdom Come).mp4'), (
               'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E12.The.Hidden.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
@@ -43,6 +43,10 @@ def main():
     if len(sys.argv) > 1:
         argument = sys.argv[1]
         print(f'接收到的参数值: {argument}')
+        avg = None
+        if len(sys.argv) > 2:
+            avg = int(sys.argv[2])
+            print(f"设定的匹配标准是{avg}")
 
         index = -int(argument)
         target = videos[index]
@@ -51,7 +55,7 @@ def main():
 
         input('回车开始')
 
-        runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(target[0], target[1])
+        runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(target[0], target[1], avg)
 
         runner.run()
 

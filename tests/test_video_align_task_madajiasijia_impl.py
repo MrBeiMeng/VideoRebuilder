@@ -9,8 +9,8 @@ class TestVideoAlignTaskMadajiasijiaImpl(TestCase):
         # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(video_a_path='E:/xunleiyunpan/我爱爆米花高清23fs.mkv',
         #                                                  video_b_path='E:/data/央视配音24fs/我爱爆米花.mp4')
         runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(
-            'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E01.Gone.in.a.Flash.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',
-            'E:/data/央视配音24fs/1 我爱大毛 Gone In A Flash.mp4')
+            "E:/360MoveData/Users/MrB/Desktop/视频A.mp4",
+            "E:/360MoveData/Users/MrB/Desktop/视频B.mp4")
 
         # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(
         #     'E:/xunleiyunpan/The.Penguins.Of.Madagascar.S01E02.Launchtime.1080p.WEB-DL.AAC2.0.H.264-CtrlHD.mkv',

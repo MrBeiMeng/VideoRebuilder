@@ -6,7 +6,7 @@ from src.service.video_creator_interface import VideoCreatorI
 
 
 class VideoCreatorFfmpegImpl(VideoCreatorI):
-    def __init__(self, filename: str, fps=30, frame_size=(1920, 1080), vcodec='libx264', crf=28):
+    def __init__(self, filename: str, fps=30, frame_size=(1920, 1080), vcodec='libx264', crf=32):
         super().__init__(filename)
         self.output_filename = self._get_unique_filename(filename)
 
@@ -55,15 +55,16 @@ class VideoCreatorFfmpegImpl(VideoCreatorI):
 
     def release(self):
         self.process.stdin.close()
-        self.process.wait()
-
-        try:
-            # 合并视频和音频
-            video_stream = ffmpeg.input(self.temp_filename)
-            audio_stream = ffmpeg.input(self.audio_file).audio
-            ffmpeg.output(video_stream, audio_stream, self.output_filename, vcodec='copy', acodec='copy').run()
-
-            # 删除临时文件
-            os.remove(self.temp_filename)
-        except Exception as e:
-            print(f"在保存音频时发生了一些问题： {e.args}")
+        # self.process.wait()
+        #
+        # try:
+        #     # 合并视频和音频
+        #     video_stream = ffmpeg.input(self.temp_filename)
+        #     audio_stream = ffmpeg.input(self.audio_file).audio
+        #     ffmpeg.output(video_stream, audio_stream, self.output_filename, vcodec='copy', acodec='copy').run()
+        #
+        #     # 删除临时文件
+        #     os.remove(self.temp_filename)
+        # except Exception as e:
+        #     print(f"在保存音频时发生了一些问题： {e.args}")
+        pass

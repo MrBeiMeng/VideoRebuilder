@@ -40,7 +40,7 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
 
         if len(trimmed_distances) == 0:
             return False
-        reasonable = (np.mean(trimmed_distances)) <= self.reasonable_avg
+        reasonable = int(np.mean(trimmed_distances)) <= self.reasonable_avg
 
         return reasonable
 
@@ -87,6 +87,6 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
     def get_rb_list_and_b_index(self) -> (List[Tuple[int, int]], int):
         for i, distance in enumerate(self.distance_list):
             # 这里假设当distance大于reasonable_avg时，序列开始变得不合理
-            if distance >= self.reasonable_avg:
+            if distance >= int(np.mean(self.distance_list)):
                 return self.index_list[:i], i  # 返回合理的序列和第一个不合理的b_index
         return self.index_list, len(self.index_list)  # 如果所有距离都合理，返回全部序列和序列长度

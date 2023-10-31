@@ -160,7 +160,8 @@ class SiftModelSingleImpl:
 class TwoPFastDtwSiftImpl(RunnerI):
 
     def __init__(self, v_a_path, v_b_path, a_iterator=None, b_iterator=None, model=None, output_path=None,
-                 output_fps=None, output_size=None, pool_size=None, debug_window=True):
+                 output_fps=None, output_size=None, pool_size=None, debug_window=True, reasonable_avg=None):
+        self.jump_a_flag = None
         self.v_a_path = v_a_path
         self.v_b_path = v_b_path
         self.pool_size = pool_size or 100
@@ -176,8 +177,10 @@ class TwoPFastDtwSiftImpl(RunnerI):
         range_time = self.b_iterator.get_total_f_num() if self.b_iterator.get_total_f_num() < self.a_iterator.get_total_f_num() else self.a_iterator.get_total_f_num()
         self.pbar = tqdm(total=range_time, desc="fast dtw and sift 逐帧对比", unit="帧")
 
+        self.reasonable_avg = reasonable_avg or 15
+
         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-            reasonable_avg=20)  # 可以修改参数
+            reasonable_avg=self.reasonable_avg)  # 可以修改参数
 
     def get_small_size(self):
         fps, (a_w, a_h) = self.a_iterator.get_video_info()
@@ -203,7 +206,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
         print(f"output info {output_fps},{output_size}")
 
         # return VideoCreatorImpl(output_path, output_fps, output_size)
-        return VideoCreatorFfmpegImpl(filename=output_path, fps=output_fps, frame_size=output_size)
+        return VideoCreatorImpl(filename=output_path, fps=output_fps, frame_size=output_size)
 
     def get_feature(self, frame) -> np.ndarray:
 
@@ -261,11 +264,18 @@ class TwoPFastDtwSiftImpl(RunnerI):
     def _cut_frame(self, frame_a, frame_b):
 
         # 计算裁剪区域的边界（如果需要进一步裁剪）
+        # height, width = frame_b.shape[:2]
+        # crop_width_start = width // 5
+        # crop_width_end = 4 * width // 5
+        # crop_height_start = height // 5
+        # crop_height_end = 4 * height // 5
+
         height, width = frame_b.shape[:2]
         crop_width_start = width // 5
-        crop_width_end = 4 * width // 5
-        crop_height_start = height // 5
-        crop_height_end = 4 * height // 5
+        crop_width_end = width - 1
+        crop_height_start = 2 * height // 3
+        crop_height_end = height - 1
+
 
         # 裁剪调整分辨率后的frame_a和frame_b的中间3/5的区域
         final_cropped_frame_a = frame_a[crop_height_start:crop_height_end, crop_width_start:crop_width_end]
@@ -359,6 +369,21 @@ class TwoPFastDtwSiftImpl(RunnerI):
         # 计算SSIM
         ssim_value, _ = compare_ssim(feature_a, feature_b, full=True)
 
+        # B帧全黑或全白检测
+        # 设置阈值
+        lower_threshold = 20  # 低于此值将被认为是黑色
+        upper_threshold = 245  # 高于此值将被认为是白色
+
+        # 检查是否接近全黑或全白
+        if np.max(feature_b) <= lower_threshold:
+            # print("The B is nearly entirely black.")
+            ssim_value = 1
+        # elif np.min(feature_b) >= upper_threshold:
+        #     print("The B is nearly entirely white.")
+        #     ssim_value = 1
+        # else:
+        #     print("The B is neither nearly entirely black nor white.")
+
         distance = ((2 - (ssim_value + 1)) / 2) * 100
 
         # Draw matches
@@ -383,6 +408,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
         p_set: PathSetI = PathSetImpl()
 
+        temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
+
         while True:
             try:
                 frame_a = next(self.a_iterator)
@@ -404,6 +431,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
             # 判断数量是否够了
             if len(feature_queue_a) >= self.pool_size:
+                print(f"读取了{len(feature_queue_a)}帧")
                 # 使用 fastdtw 函数计算 DTW 对齐
                 distance, path = fastdtw(feature_queue_a, feature_queue_b, dist=self.get_distance)
                 print(f"fast dtw distance: [{distance}]")
@@ -415,7 +443,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                     index_a, index_b = path[i]
 
                     stopping_flag = total_path_num - i <= 20
-                    jump_a_flag = False
+                    self.jump_a_flag = False
 
                     if p_set.exist((index_a, index_b)):
                         p_set.add((index_a, index_b))
@@ -429,10 +457,14 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                                                                         min_distance)
 
                         if not self.distance_avg_reasonable_check.avg_reasonable(stopping_flag):
-                            confirm_index_list, _ = self.distance_avg_reasonable_check.get_rb_list_and_b_index()
+                            confirm_index_list, length = self.distance_avg_reasonable_check.get_rb_list_and_b_index()
+                            print(f"区域匹配成功数量{length}")
+                            self.distance_avg_reasonable_check.pop_all()
 
                             tmp_a_index, tmp_b_index = 0, 0
 
+                            # --- 跳A 开始
+                            print(f"开始尝试跳A，在此之前已经写入{write_size}\n")
                             for tmp_a_index, tmp_b_index in confirm_index_list:
                                 # 写操作
                                 self.show_when_write(frame_queue_a[tmp_a_index], frame_queue_b[tmp_b_index])
@@ -441,42 +473,76 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                 # ---
 
                             # --- 跳A 开始
-                            print("开始尝试跳A")
+                            print(f"开始尝试跳A中途已经写入{write_size}\n")
                             if tmp_a_index < len(frame_queue_a):
-                                self.a_iterator.add_prefix(frame_queue_a[tmp_a_index:])
+                                self.a_iterator.add_prefix(frame_queue_a[tmp_a_index + 1 if tmp_a_index > 0 else 0:])
                             if tmp_b_index < len(frame_queue_b):
-                                self.b_iterator.add_prefix(frame_queue_b[tmp_b_index:])
+                                self.b_iterator.add_prefix(frame_queue_b[tmp_b_index + 1 if tmp_b_index > 0 else 0:])
 
-                            frame_b = next(self.b_iterator)
-                            feature_b = self.get_feature(frame_b)
+                            temp_compare_frame_queue_b = []
+                            temp_compare_feature_queue_b = []
+
+                            # 连续对比5帧
+                            for _ in range(5):
+                                frame_b = next(self.b_iterator)
+                                temp_compare_frame_queue_b.append(frame_b)
+                                temp_compare_feature_queue_b.append(self.get_feature(frame_b))
 
                             tmp_count = 0
 
-                            temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
+                            if temp_a_iterator.get_current_index() <= self.a_iterator.get_current_index():  # 优化，避免重复加载
+                                pass
+                            else:
+                                temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
 
-                            for _ in range(self.a_iterator.get_current_index() + 1):
+                            for _ in range(
+                                    self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index()):
                                 next(temp_a_iterator)
+
+                            print("初始化tempA完成")
+
+                            temp_compare_frame_queue_a = []
+                            temp_compare_feature_queue_a = []
 
                             while True:  # 跳A ，从这个点开始，B 不动，A向后遍历 。直到满足条件
                                 try:
                                     frame_a = next(temp_a_iterator)
+                                    # 保证temp_compare_frame_queue_a长度一定
+                                    temp_compare_frame_queue_a.append(frame_a)
+                                    if len(temp_compare_frame_queue_a) > 5:
+                                        temp_compare_feature_queue_a.pop(0)
+
                                     feature_a = self.get_feature(frame_a)
+                                    temp_compare_feature_queue_a.append(feature_a)
+                                    if len(temp_compare_feature_queue_a) > 5:
+                                        temp_compare_feature_queue_a.pop(0)
+
                                     tmp_count += 1
 
-                                    feature_a, tmp_feature_b = self._cut_frame(feature_a, feature_b)
+                                    comparing_distance = 0
 
-                                    distance = self.get_distance(feature_a, tmp_feature_b)
+                                    # 两个循环
+                                    for j in range(len(temp_compare_feature_queue_a)):
+                                        feature_a, tmp_feature_b = self._cut_frame(temp_compare_feature_queue_a[j],
+                                                                                   temp_compare_feature_queue_b[j])
 
-                                    if distance < 15:
+                                        distance = self.get_distance(feature_a, tmp_feature_b)
+
+                                        comparing_distance += distance
+
+                                    # 连续对比5帧
+                                    print(f"{tmp_count} -- 5帧平均对比差异值 {comparing_distance / 5}")
+                                    if tmp_count >= 5 and comparing_distance / 5 < 18:  # todo 原来18
+
                                         print("尝试成功")
                                         # self.a_iterator.add_prefix([frame_a])
-                                        self.b_iterator.add_prefix([frame_b])
+                                        self.b_iterator.add_prefix(temp_compare_frame_queue_b)
 
                                         for _ in range(tmp_count - 1):  # 记录数字。这里不需要缓存了，另一个迭代器尝试匹配，成功了就行
                                             next(self.a_iterator)
 
                                         self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
-                                            reasonable_avg=20)  # 可以修改参数
+                                            reasonable_avg=self.reasonable_avg)  # 可以修改参数
 
                                         print(f"跳帧成功 A跳{tmp_count}帧")
                                         break
@@ -485,21 +551,25 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                         raise StopIteration
 
                                 except StopIteration:
-                                    print("尝试失败")
+                                    print("尝试失败-接下来更新匹配阈值")
                                     self.distance_avg_reasonable_check.upd_reasonable_avg(3)
                                     # self.a_iterator.add_prefix(tmp_frame_a_queue)
-                                    self.b_iterator.add_prefix([frame_b])
+                                    print(f"temp_compare_frame_queue_b.len = {len(temp_compare_frame_queue_b)}")
+                                    self.b_iterator.add_prefix(temp_compare_frame_queue_b)
+                                    print("清空distance_avg_reasonable_check")
+                                    self.distance_avg_reasonable_check.pop_all()
                                     break
+                                finally:
+                                    self.jump_a_flag = True
 
                             # 如果发现确实可以跳A，在进行跳A
 
                             # --- 跳A结束
-
-                            jump_a_flag = True
                             p_set.pop()
                             break  # break 是防止调用50帧荣誉方法
                         else:
                             if stopping_flag:
+                                print(f"内部循环stopping 之前已写入 {write_size} \n")
                                 index_list = self.distance_avg_reasonable_check.pop_all()  # todo 处理写操作
 
                                 for tmp_a_index, tmp_b_index in index_list:
@@ -508,6 +578,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                     self.creator.write_frame(frame_queue_a[tmp_a_index])  # todo 测试阶段不用生成
                                     write_size += 1
                                     # ---
+                                print(f"内部循环stopping 最后总写入 {write_size} \n")
                             else:
                                 (first_a_index,
                                  first_b_index), enough = self.distance_avg_reasonable_check.pop_first_index_t()
@@ -522,17 +593,19 @@ class TwoPFastDtwSiftImpl(RunnerI):
                         # if distance < 50:
                         #     break
 
-                        if not jump_a_flag and stopping_flag:  # 如果没有重复的，留下50帧荣誉
+                        if not self.jump_a_flag and stopping_flag:  # 如果没有重复的，留下50帧荣誉
                             self.a_iterator.add_prefix(frame_queue_a[index_a:])
                             self.b_iterator.add_prefix(frame_queue_b[index_b:])
-                            print("break 50 帧冗余")
                             p_set.pop()
+                            print(f"break 50 帧冗余 p_set is empty{p_set.is_empty()}")
                             break
                         p_set.add((index_a, index_b))  # 和下面重复了，这里是为了 50 帧 break 的时候不要重复添加帧
                     else:
                         p_set.add((index_a, index_b))
 
                 if not p_set.is_empty():  # 其实这里不可能是empty，但是最后一对无法判断是否匹配。所以索性没问题
+                    print(f"p_set.is not empty() 补上一帧\n")
+                    print("why2")
                     a_index_list, b_index_list = p_set.pop()
                     tmp_frame_a_list = []
                     tmp_frame_b_list = []
@@ -545,6 +618,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
                     self.b_iterator.add_prefix(tmp_frame_b_list)
 
                 self.pbar.update(write_size)  # 进度统计
+                print(f"写入{write_size}帧")
+                print(f"b所在索引{self.b_iterator.get_current_index()}")
 
                 # 清空缓存
                 frame_queue_a.clear()
