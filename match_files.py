@@ -1,8 +1,10 @@
 import os
 import re
 
+
 def list_files(directory):
     return sorted([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))], reverse=True)
+
 
 def match_files(dir1, dir2):
     files1 = list_files(dir1)
@@ -22,9 +24,10 @@ def match_files(dir1, dir2):
 
     return matched_pairs
 
+
 # Directories to match files between
 dir1 = 'E:/xunleiyunpan/'
-dir2 = 'E:/data/央视配音24fs/'
+dir2 = 'E:/data/Penguins/'
 
 # Get matched file pairs
 matched_file_pairs = match_files(dir1, dir2)

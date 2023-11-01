@@ -261,7 +261,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
         return frame
 
-    def _cut_frame(self, frame_a, frame_b):
+    @staticmethod
+    def cut_frame(frame_a, frame_b):
 
         # 计算裁剪区域的边界（如果需要进一步裁剪）
         # height, width = frame_b.shape[:2]
@@ -276,10 +277,12 @@ class TwoPFastDtwSiftImpl(RunnerI):
         crop_height_start = 2 * height // 3
         crop_height_end = height - 1
 
-
         # 裁剪调整分辨率后的frame_a和frame_b的中间3/5的区域
-        final_cropped_frame_a = frame_a[crop_height_start:crop_height_end, crop_width_start:crop_width_end]
-        final_cropped_frame_b = frame_b[crop_height_start:crop_height_end, crop_width_start:crop_width_end]
+        final_cropped_frame_a = frame_a[crop_height_start:crop_height_end,
+                                crop_width_start:crop_width_end] if frame_a is not None else None
+
+        final_cropped_frame_b = frame_b[crop_height_start:crop_height_end,
+                                crop_width_start:crop_width_end] if frame_b is not None else None
 
         return final_cropped_frame_a, final_cropped_frame_b
 
@@ -424,7 +427,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
             feature_a = self.get_feature(frame_a)
             feature_b = self.get_feature(frame_b)
-            feature_a, feature_b = self._cut_frame(feature_a, feature_b)
+            feature_a, feature_b = self.cut_frame(feature_a, feature_b)
 
             feature_queue_a.append(feature_a)
             feature_queue_b.append(feature_b)
@@ -523,8 +526,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
                                     # 两个循环
                                     for j in range(len(temp_compare_feature_queue_a)):
-                                        feature_a, tmp_feature_b = self._cut_frame(temp_compare_feature_queue_a[j],
-                                                                                   temp_compare_feature_queue_b[j])
+                                        feature_a, tmp_feature_b = self.cut_frame(temp_compare_feature_queue_a[j],
+                                                                                  temp_compare_feature_queue_b[j])
 
                                         distance = self.get_distance(feature_a, tmp_feature_b)
 
