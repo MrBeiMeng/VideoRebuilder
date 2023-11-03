@@ -265,17 +265,17 @@ class TwoPFastDtwSiftImpl(RunnerI):
     def cut_frame(frame_a, frame_b):
 
         # 计算裁剪区域的边界（如果需要进一步裁剪）
-        # height, width = frame_b.shape[:2]
-        # crop_width_start = width // 5
-        # crop_width_end = 4 * width // 5
-        # crop_height_start = height // 5
-        # crop_height_end = 4 * height // 5
-
         height, width = frame_b.shape[:2]
         crop_width_start = width // 5
-        crop_width_end = width - 1
-        crop_height_start = 2 * height // 3
-        crop_height_end = height - 1
+        crop_width_end = 4 * width // 5
+        crop_height_start = height // 5
+        crop_height_end = 4 * height // 5
+
+        # height, width = frame_b.shape[:2]
+        # crop_width_start = width // 5
+        # crop_width_end = width - 1
+        # crop_height_start = 2 * height // 3
+        # crop_height_end = height - 1
 
         # 裁剪调整分辨率后的frame_a和frame_b的中间3/5的区域
         final_cropped_frame_a = frame_a[crop_height_start:crop_height_end,
@@ -283,6 +283,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
         final_cropped_frame_b = frame_b[crop_height_start:crop_height_end,
                                 crop_width_start:crop_width_end] if frame_b is not None else None
+
+        TwoPFastDtwSiftImpl.draw_matches(0, final_cropped_frame_a, final_cropped_frame_b)
 
         return final_cropped_frame_a, final_cropped_frame_b
 
@@ -298,7 +300,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
         cv2.putText(img_matches, f'{distance:.2f}', center_coordinates, cv2.FONT_HERSHEY_SIMPLEX,
                     font_scale, font_color, thickness)
         cv2.imshow('Matches', img_matches)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
 
     @staticmethod
     def get_distance(feature_a, feature_b) -> float:
@@ -510,6 +512,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
                             while True:  # 跳A ，从这个点开始，B 不动，A向后遍历 。直到满足条件
                                 try:
                                     frame_a = next(temp_a_iterator)
+                                    cv2.imshow("jumping", frame_a)
+                                    cv2.waitKey(1)
                                     # 保证temp_compare_frame_queue_a长度一定
                                     temp_compare_frame_queue_a.append(frame_a)
                                     if len(temp_compare_frame_queue_a) > 5:
@@ -550,7 +554,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                         print(f"跳帧成功 A跳{tmp_count}帧")
                                         break
 
-                                    if tmp_count > 1000:
+                                    if tmp_count > 5000:
                                         raise StopIteration
 
                                 except StopIteration:
