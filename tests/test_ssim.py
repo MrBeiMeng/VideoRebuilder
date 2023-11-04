@@ -32,7 +32,7 @@ imageB = resize_image(imageB, target_width=481)
 # blurredImageB = cv2.GaussianBlur(imageB, (17, 17), 0)
 
 blurredImageA = imageA
-blurredImageB = resize_image(resize_image(imageB, target_width=11), target_width=blurredImageA.shape[1])
+blurredImageB = resize_image(resize_image(imageB, target_width=270), target_width=blurredImageA.shape[1])
 
 # 获取图像B的尺寸
 height, width = imageA.shape[:2]
@@ -52,6 +52,7 @@ edge_convolved_imageB = cv2.filter2D(blurredImageB, -1, sobel_x)
 # 确保两个图像具有相同的尺寸
 assert imageA.shape == imageB.shape, "图像必须具有相同的尺寸"
 
+TwoPFastDtwSiftImpl.draw_matches(0, imageA, imageB)
 TwoPFastDtwSiftImpl.draw_matches(0, blurredImageA, blurredImageB)
 # 计算SSIM
 ssim_value, _ = compare_ssim(edge_convolved_imageA, edge_convolved_imageB, full=True)

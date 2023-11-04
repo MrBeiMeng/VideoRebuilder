@@ -1,4 +1,5 @@
 import math
+from collections import deque
 from typing import List, Tuple
 
 import numpy as np
@@ -9,7 +10,7 @@ from src.service.distance_avg_reasonable_interface import DistanceAvgReasonableI
 class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
     def __init__(self, avg_size=10, reasonable_avg=90):
         self.avg_size = avg_size
-        self.index_list: List[Tuple[int, int]] = []
+        self.index_list: deque[Tuple[int, int]] = deque()
         self.distance_list: List = []
         self.reasonable_avg = reasonable_avg
 
@@ -35,30 +36,39 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
         self.distance_list.append(distance)
 
         # 去掉一个最大值，去掉一个最小值 # !! 这里和下面的逻辑不同，这里不会受数量影响。是一个随时变化的合理性
-        sorted_distances = sorted(self.distance_list)
-        trimmed_distances = sorted_distances[1:-1]  # 去掉一个最大值，去掉一个最小值
+        # sorted_distances = sorted(self.distance_list)
+        # trimmed_distances = sorted_distances[1:-1]  # 去掉一个最大值，去掉一个最小值 # todo 关闭了
 
-        if len(trimmed_distances) == 0:
+        if len(self.distance_list) == 0:
             return False
-        reasonable = int(np.mean(trimmed_distances)) <= self.reasonable_avg
+        reasonable = int(np.mean(self.distance_list)) <= self.reasonable_avg
 
         return reasonable
 
-    def avg_reasonable(self, stopping_flag: bool) -> bool:
+    def avg_reasonable(self, stopping_flag: bool, op_reasonable_avg: int) -> bool:
 
         if not stopping_flag:
             if len(self.index_list) < self.avg_size:  # avg_size 表示取平均的数量。不达到数量，或者stopping_flag = False 即为合理
                 return True
-        sorted_distances = sorted(self.distance_list)
-        trimmed_distances = sorted_distances[1:-1]  # 去掉一个最大值，去掉一个最小值
-
-        if len(trimmed_distances) == 0:
-            return False
-        avg = int(np.mean(trimmed_distances))
+        # sorted_distances = sorted(self.distance_list)
+        # trimmed_distances = sorted_distances[1:-1]  # 去掉一个最大值，去掉一个最小值
+        #
+        # if len(trimmed_distances) == 0:
+        #     return False
+        avg = int(np.mean(self.distance_list))  # todo 关闭了
         reasonable = avg <= self.reasonable_avg
 
         if not reasonable:
             print(f"匹配不通过。avg={avg} !<= {self.reasonable_avg}")
+        else:
+            # 往内收敛
+
+            if self.reasonable_avg < op_reasonable_avg:
+                self.reasonable_avg = op_reasonable_avg
+            elif self.reasonable_avg - avg > 5:
+                self.reasonable_avg = avg + 5
+
+            pass
 
         return reasonable
 
@@ -66,7 +76,7 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
 
         if len(self.index_list) > self.avg_size:
             self.distance_list.pop(0)  # 同步清空
-            return self.index_list.pop(0), True
+            return self.index_list.popleft(), True
         else:
             if len(self.index_list) != 0:
                 return self.index_list[0], False
@@ -88,5 +98,5 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
         for i, distance in enumerate(self.distance_list):
             # 这里假设当distance大于reasonable_avg时，序列开始变得不合理
             if distance >= int(np.mean(self.distance_list)):
-                return self.index_list[:i], i  # 返回合理的序列和第一个不合理的b_index
+                return list(self.index_list)[:i], i  # 返回合理的序列和第一个不合理的b_index
         return self.index_list, len(self.index_list)  # 如果所有距离都合理，返回全部序列和序列长度

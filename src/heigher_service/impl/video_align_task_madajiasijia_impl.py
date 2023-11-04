@@ -16,10 +16,11 @@ import keras.applications as ka
 
 
 class VideoAlignTaskMadajiasijiaImpl(RunnerI):
-    def __init__(self, video_a_path, video_b_path, reasonable_avg=None):
+    def __init__(self, video_a_path, video_b_path, reasonable_avg=None, compare_size=None):
         self.video_a_path = video_a_path
         self.video_b_path = video_b_path
         self.reasonable_avg = reasonable_avg
+        self.compare_size = compare_size
 
     @staticmethod
     def _get_unique_filename(filename: str) -> str:
@@ -37,7 +38,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
 
         base_name = os.path.basename(self.video_b_path)
 
-        output_path = f"E:/360MoveData/Users/MrB/Desktop/result/{base_name}"
+        output_path = f"E:/360MoveData/Users/MrB/Desktop/penguins_new_result/{base_name}"
 
         # model = ka.VGG16(include_top=False, weights='imagenet', pooling='avg')
 
@@ -70,14 +71,15 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
                                               v_b_path=self.video_b_path,
                                               a_iterator=a_iterator,
                                               output_path=output_path,
-                                              pool_size=200, reasonable_avg=self.reasonable_avg)
+                                              pool_size=200, reasonable_avg=self.reasonable_avg,
+                                              compare_size=self.compare_size)
 
         runner.run()
-
-        video1 = VideoFileClip(self.video_b_path)
-        video2 = VideoFileClip(output_path)
-
-        video1_audio = video1.audio
-        final_video = video2.set_audio(video1_audio)
-
-        final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')
+        #
+        # video1 = VideoFileClip(self.video_b_path)
+        # video2 = VideoFileClip(output_path)
+        #
+        # video1_audio = video1.audio
+        # final_video = video2.set_audio(video1_audio)
+        #
+        # final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')

@@ -69,7 +69,7 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
     def add_prefix(self, arr: List[np.ndarray]):
 
         if len(arr) == 0:
-            raise Exception("你加入了一个长度为0的数组")
+            print("你加入了一个长度为0的数组")
 
         if len(self.prefix_list) == 0:
             for frame in arr:
@@ -84,7 +84,7 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
 
         self.current_index -= len(arr)
 
-        print(f"added prefix{len(arr)}", end='')
+        print(f"added prefix{len(arr)}, len(pfx)=[{len(self.prefix_list)}] ", end='')
 
         if self.current_index < 0:
             print("这是因为加入了前置prefix数组,放心，不影响的。")

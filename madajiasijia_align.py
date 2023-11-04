@@ -72,6 +72,11 @@ def main():
             avg = int(sys.argv[2])
             print(f"设定的匹配标准是{avg}")
 
+        compare_size = None
+        if len(sys.argv) > 3:
+            compare_size = int(sys.argv[3])
+            print(f"设定的匹配长度是{compare_size}")
+
         index = -int(argument)
         target = videos[index]
 
@@ -81,7 +86,8 @@ def main():
 
         # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(target[0], target[1], avg)
         runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(video_a_path=target[0],
-                                                         video_b_path=target[1], reasonable_avg=avg)
+                                                         video_b_path=target[1], reasonable_avg=avg,
+                                                         compare_size=compare_size)
 
         runner.run()
 
