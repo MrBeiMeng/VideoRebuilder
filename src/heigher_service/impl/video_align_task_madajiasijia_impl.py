@@ -75,11 +75,11 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
                                               compare_size=self.compare_size)
 
         runner.run()
-        #
-        # video1 = VideoFileClip(self.video_b_path)
-        # video2 = VideoFileClip(output_path)
-        #
-        # video1_audio = video1.audio
-        # final_video = video2.set_audio(video1_audio)
-        #
-        # final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')
+
+        video1 = VideoFileClip(self.video_b_path)
+        video2 = VideoFileClip(output_path)
+
+        video1_audio = video1.audio
+        final_video = video2.set_audio(video1_audio)
+
+        final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')

@@ -16,6 +16,7 @@ class OrbModelSingleImpl:
     def get_model(self):
         return self.model
 
+
 class TwoPFastDtwOrbImpl(TwoPFastDtwSiftImpl):
     @staticmethod
     def get_distance(feature_a, feature_b) -> float:
@@ -53,9 +54,9 @@ class TwoPFastDtwOrbImpl(TwoPFastDtwSiftImpl):
             # print(similarity)
 
             # Draw matches
-            img_matches = cv2.drawMatches(feature_a, keypoints1, feature_b, keypoints2, good_matches, outImg=None)
-            cv2.imshow('Matches', img_matches)
-            cv2.waitKey(1)
+            # img_matches = cv2.drawMatches(feature_a, keypoints1, feature_b, keypoints2, good_matches, outImg=None)
+            # cv2.imshow('Matches', img_matches)
+            # cv2.waitKey(1)
         except Exception as e:
             print(f"出现错误！！{e.args}")
             return 30
