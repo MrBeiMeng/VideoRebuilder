@@ -467,6 +467,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
             feature_queue_a.append(feature_a)
             feature_queue_b.append(feature_b)
 
+            # -- 读取时直接对比，如果符合标准，直接写
+
             # 判断数量是否够了
             if len(feature_queue_a) >= self.pool_size:
                 print(
@@ -536,7 +538,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                             temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
 
                             for _ in range(
-                                    self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index() + 100):
+                                    self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index()):
                                 next(temp_a_iterator)
 
                             print("初始化tempA完成")

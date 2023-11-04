@@ -6,7 +6,7 @@ import numpy as np
 from src.heigher_service.impl.two_p_fast_dtw_sift_impl import SiftModelSingleImpl, PathSetI, PathSetImpl, \
     TwoPFastDtwSiftImpl
 from src.heigher_service.runner_interface import RunnerI
-from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl
+from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl, VideoIteratorPrefixStepImpl
 from src.service.video_iterator_interface import VideoIteratorPrefixI
 
 from unittest import TestCase
@@ -34,6 +34,39 @@ class TestTwoPFastDtwSiftImpl(TestCase):
         runner.run()
 
     def test_show_when_write(self):
+
+        b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(
+            "E:/data/Penguins/47 我最可爱 (The Penguin Stays In the..).mp4")
+        target_frames = b_iterator.get_total_f_num()
+        a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixStepImpl(
+            "E:/xunleiyunpan/S01E47.The.Penguin.Stays.in.the.Picture.mkv",
+            100)
+
+        while True:
+            try:
+                frame_a = next(a_iterator)
+                frame_b = next(b_iterator)
+            except StopIteration:
+                break
+
+            # print(f"IndexB [{b_iterator.get_current_index()}/{b_iterator.get_total_f_num()}]")
+            print(f"IndexA [{a_iterator.get_current_index()}/{a_iterator.get_total_f_num()}]")
+
+            # 确保两个帧的维度相同
+            if frame_a.shape != frame_b.shape:
+                # print("Frames have different dimensions, resizing frame2 to match frame1")
+                frame_a = cv2.resize(frame_a, (frame_b.shape[1], frame_b.shape[0]))
+
+            # 使用numpy的hstack函数水平堆叠两个帧
+            merged_frame = np.hstack((frame_a, frame_b))
+
+            # 使用cv2.imshow展示合并后的帧
+            cv2.imshow('writing Frame', merged_frame)
+            cv2.waitKey(1)
+
+        self.fail()
+
+    def test_show_when_write_2(self):
 
         a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl('E:/xunleiyunpan/我爱爆米花高清23fs.mkv')
         b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl('E:/data/央视配音24fs/我爱爆米花.mp4')

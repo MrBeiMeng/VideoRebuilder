@@ -91,3 +91,43 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
 
     def get_current_index(self):
         return self.current_index
+
+
+class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
+
+    def __init__(self, video_path, target_frames):
+        super().__init__(video_path)
+        # 获取原视频的总帧数和帧率
+        original_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        original_fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+
+        # 计算步长值
+        self.step = original_frames / target_frames
+        # 计算新的帧率
+        new_fps = original_fps / self.step
+        self.fps_a = new_fps
+        self.total_f_size = target_frames
+        print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
+        print(f"视频原帧帧率与新帧率为[{original_fps}]/[{new_fps}]")
+
+        self.frame_number = 0
+
+    def __next__(self) -> np.ndarray:
+        if len(self.prefix_list) > 0:
+            self.current_index += 1
+            return self.prefix_list.pop(0)
+        else:
+            if self.current_index < self.total_f_size:
+                ret, frame = self.cap.read()
+                self.frame_number += 1
+                if ret:
+                    # 如果当前帧号是步长值的整数倍，则写入输出视频
+                    if int(self.frame_number % self.step) != 0:
+                        return self.__next__()
+
+                    self.current_index += 1
+                    return frame
+                else:
+                    raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
+            else:
+                raise StopIteration

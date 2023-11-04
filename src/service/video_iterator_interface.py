@@ -1,13 +1,14 @@
 import abc
+from abc import ABC
 from typing import List
 
 import numpy as np
 
 
 class VideoIteratorI(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def __init__(self, video_path):
-        pass
+    # @abc.abstractmethod
+    # def __init__(self, video_path):
+    #     pass
 
     @abc.abstractmethod
     def __iter__(self):
@@ -34,3 +35,4 @@ class VideoIteratorPrefixI(VideoIteratorI, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_current_index(self):
         pass
+
