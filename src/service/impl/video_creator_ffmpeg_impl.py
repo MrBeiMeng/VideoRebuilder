@@ -6,7 +6,7 @@ from src.service.video_creator_interface import VideoCreatorI
 
 
 class VideoCreatorFfmpegImpl(VideoCreatorI):
-    def __init__(self, filename: str, fps=30, frame_size=(1920, 1080), vcodec='libx264', crf=32):
+    def __init__(self, filename: str, fps=30, frame_size=(1920, 1080), vcodec='libx264', crf=23):
         super().__init__(filename)
         self.output_filename = self._get_unique_filename(filename)
 
@@ -17,7 +17,9 @@ class VideoCreatorFfmpegImpl(VideoCreatorI):
         self.process = (
             ffmpeg
             .input('pipe:', format='rawvideo', pix_fmt='bgr24', s=f'{width}x{height}', framerate=fps)
-            .output(self.temp_filename, vcodec=vcodec, crf=crf)  # crf 越低，视频质量越高，但文件大小也越大
+            # .output(self.temp_filename, vcodec=vcodec, crf=crf)  # crf 越低，视频质量越高，但文件大小也越大
+            .output(self.temp_filename, vcodec=vcodec, crf=crf,
+                    loglevel='quiet')  # 添加 loglevel 选项  # crf 越低，视频质量越高，但文件大小也越大
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )

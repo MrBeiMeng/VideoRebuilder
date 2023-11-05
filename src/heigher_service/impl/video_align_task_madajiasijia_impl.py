@@ -1,6 +1,7 @@
 import os
 
 import cv2
+import ffmpeg
 import numpy as np
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
@@ -39,6 +40,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
         base_name = os.path.basename(self.video_b_path)
 
         output_path = f"E:/360MoveData/Users/MrB/Desktop/penguins_new_result/{base_name}"
+        output_path = self._get_unique_filename(output_path)
 
         # model = ka.VGG16(include_top=False, weights='imagenet', pooling='avg')
 
@@ -76,10 +78,19 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
 
         runner.run()
 
-        video1 = VideoFileClip(self.video_b_path)
-        video2 = VideoFileClip(output_path)
+        final_output = f"E:/360MoveData/Users/MrB/Desktop/penguins_finally/{base_name}"
 
-        video1_audio = video1.audio
-        final_video = video2.set_audio(video1_audio)
+        final_output = self._get_unique_filename(final_output)
 
-        final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')
+        # 合并视频和音频
+        video_stream = ffmpeg.input(output_path)
+        audio_stream = ffmpeg.input(self.video_b_path).audio
+        ffmpeg.output(video_stream, audio_stream, final_output, vcodec='copy', acodec='copy').run()
+
+        # video1 = VideoFileClip(self.video_b_path)
+        # video2 = VideoFileClip(output_path)
+        #
+        # video1_audio = video1.audio
+        # final_video = video2.set_audio(video1_audio)
+        #
+        # final_video.write_videofile(self._get_unique_filename(output_path), codec='libx264', audio_codec='aac')

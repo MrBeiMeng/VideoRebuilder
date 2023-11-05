@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 import cv2
@@ -98,73 +99,93 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
     def __init__(self, video_path, target_frames):
         super().__init__(video_path)
         # 获取原视频的总帧数和帧率
-        original_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        original_fps = int(self.cap.get(cv2.CAP_PROP_FPS))
+        original_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        original_fps = self.cap.get(cv2.CAP_PROP_FPS)
 
         # 计算步长值
         self.step = original_frames / target_frames
         # 计算新的帧率
         new_fps = original_fps / self.step
-        self.fps_a = new_fps
-        self.total_f_size = target_frames
+        self.fps_a = int(new_fps * 1000) / 1000
+        self.total_f_size = int(target_frames)
+        self.original_frames = original_frames
         print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
         print(f"视频原帧帧率与新帧率为[{original_fps}]/[{new_fps}]")
 
         self.frame_number = 0
+        # self.step = int(self.step)
+        self.step = int(self.step * 1000) / 1000
+        print(f'步长为{self.step}')
 
     def __next__(self) -> np.ndarray:
         if len(self.prefix_list) > 0:
             self.current_index += 1
             return self.prefix_list.pop(0)
         else:
-            if self.current_index < self.total_f_size:
+            if self.frame_number < self.original_frames:
                 ret, frame = self.cap.read()
                 self.frame_number += 1
                 if ret:
+                    result = self.frame_number / self.step
                     # 如果当前帧号是步长值的整数倍，则写入输出视频
-                    if int(self.frame_number % self.step) != 0:
+                    if math.isclose(result, round(result), rel_tol=1e-9):
+                        print('跳过帧=========================')
                         return self.__next__()
-
-                    self.current_index += 1
-                    return frame
+                    else:
+                        self.current_index += 1
+                        return frame
                 else:
                     raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
             else:
                 raise StopIteration
 
 
-class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixImpl):
+# class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixImpl):
+#
+#     def __init__(self, video_path, target_fps):
+#         super().__init__(video_path)
+#         # 获取原视频的总帧数和帧率
+#         original_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#         original_fps = self.fps_a
+#
+#         # 计算帧跳过率
+#         self.frame_skip_rate = original_fps // target_fps  # 保证 25 是原始帧率的因子
+#         # print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
+#         print(f"视频调整帧率为[{original_fps}原]/[{target_fps}新]")
+#
+#         self.frame_number = 0
+#         self.total_f_size = int((target_fps / original_fps) * self.total_f_size)
+#
+#     def __next__(self) -> np.ndarray:
+#         if len(self.prefix_list) > 0:
+#             self.current_index += 1
+#             return self.prefix_list.pop(0)
+#         else:
+#             if self.current_index < self.total_f_size:
+#                 ret, frame = self.cap.read()
+#                 self.frame_number += 1
+#                 if ret:
+#                     # 只处理和显示每个第 frame_skip_rate 帧
+#                     if self.frame_number % self.frame_skip_rate != 0:
+#                         return self.__next__()
+#
+#                     self.current_index += 1
+#                     return frame
+#                 else:
+#                     raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
+#             else:
+#                 raise StopIteration
+
+class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixStepImpl):
 
     def __init__(self, video_path, target_fps):
-        super().__init__(video_path)
-        # 获取原视频的总帧数和帧率
-        original_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        original_fps = self.fps_a
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"文件对象未打开@[{video_path}]")
+            raise Exception(f"文件对象未打开@[{video_path}]")
+        # print(f"Open File [{video_path}]: True")
+        original_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        original_fps = cap.get(cv2.CAP_PROP_FPS)
+        target_frames = (target_fps / original_fps) * original_frames
 
-        # 计算帧跳过率
-        self.frame_skip_rate = original_fps // target_fps  # 保证 25 是原始帧率的因子
-        # print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
-        print(f"视频调整帧率为[{original_fps}原]/[{target_fps}新]")
-
-        self.frame_number = 0
-        self.total_f_size = int((target_fps / original_fps) * self.total_f_size)
-
-    def __next__(self) -> np.ndarray:
-        if len(self.prefix_list) > 0:
-            self.current_index += 1
-            return self.prefix_list.pop(0)
-        else:
-            if self.current_index < self.total_f_size:
-                ret, frame = self.cap.read()
-                self.frame_number += 1
-                if ret:
-                    # 只处理和显示每个第 frame_skip_rate 帧
-                    if self.frame_number % self.frame_skip_rate != 0:
-                        return self.__next__()
-
-                    self.current_index += 1
-                    return frame
-                else:
-                    raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
-            else:
-                raise StopIteration
+        super().__init__(video_path, target_frames)

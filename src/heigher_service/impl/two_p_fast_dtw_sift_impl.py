@@ -175,7 +175,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
         self.a_iterator: VideoIteratorPrefixI = a_iterator or VideoIteratorPrefixImpl(self.v_a_path)
         fps_small, _ = self.a_iterator.get_video_info()  # 获取小的帧，这里是A帧率小 # 面向过程编程了
-        self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixFpsImpl(self.v_b_path, fps_small)
+        # self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixFpsImpl(self.v_b_path, fps_small)
+        self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixImpl(self.v_b_path)
         # self.model = model or cv2.SIFT_create() # 目前没用上
 
         self.creator: VideoCreatorI = self.get_video_creator(output_path, fps_small, output_size)  # todo 测试阶段不用生成
@@ -220,16 +221,16 @@ class TwoPFastDtwSiftImpl(RunnerI):
         output_path = path or self.v_b_path
         # if fps is None:
         #     fps = fps_a if fps_a < fps_b else fps_b
-        # output_fps = fps_b
-        output_fps = fps
+        output_fps = fps_b
+        # output_fps = fps
         if size is None:
             size = (a_w, a_h) if a_w * a_h > b_w * b_h else (b_w, b_h)
         output_size = size
 
         print(f"output info {output_fps},{output_size}")
 
-        # return VideoCreatorImpl(output_path, output_fps, output_size)
-        return VideoCreatorImpl(filename=output_path, fps=output_fps, frame_size=output_size)
+        return VideoCreatorImpl(output_path, output_fps, output_size)
+        # return VideoCreatorFfmpegImpl(filename=output_path, fps=output_fps, frame_size=output_size)
 
     def get_feature(self, frame) -> np.ndarray:
 
@@ -414,7 +415,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
         # B帧全黑或全白检测
         # 设置阈值
-        lower_threshold = 20  # 低于此值将被认为是黑色
+        lower_threshold = 30  # 低于此值将被认为是黑色
         upper_threshold = 245  # 高于此值将被认为是白色
 
         # 检查是否接近全黑或全白
@@ -473,29 +474,29 @@ class TwoPFastDtwSiftImpl(RunnerI):
             feature_a, feature_b = self.cut_frame(feature_a, feature_b)
 
             # -- 读取时直接对比，如果符合标准，直接写
-            if ok_flag:
-                distance = TwoPFastDtwSiftImpl.get_distance(feature_a, feature_b)
-                if distance <= 1:
-                    ok_queue_a_frames.append(frame_a)
-                    ok_queue_b_frames.append(frame_b)
-
-                    if len(ok_queue_a_frames) >= 50:
-                        # 写操作
-                        writing_frame_a = ok_queue_a_frames.popleft()
-                        self.show_when_write(writing_frame_a, ok_queue_b_frames.popleft(), 'Auto Writing!!')
-                        self.creator.write_frame(writing_frame_a)  # todo 测试阶段不用生成
-                        ok_num += 1
-                        self.pbar.update(1)
-                else:
-                    ok_flag = False
-                    print(f'直接比对写入了{ok_num}帧')
-                    ok_num = 0
-                    self.a_iterator.add_prefix(list(ok_queue_a_frames))
-                    self.b_iterator.add_prefix(list(ok_queue_b_frames))
-                    ok_queue_a_frames.clear()
-                    ok_queue_b_frames.clear()
-                    print('----------')
-                continue  # 跳过本次循环
+            # if ok_flag:
+            #     distance = TwoPFastDtwSiftImpl.get_distance(feature_a, feature_b)
+            #     if distance <= 1:
+            #         ok_queue_a_frames.append(frame_a)
+            #         ok_queue_b_frames.append(frame_b)
+            #
+            #         if len(ok_queue_a_frames) >= 50:
+            #             # 写操作
+            #             writing_frame_a = ok_queue_a_frames.popleft()
+            #             self.show_when_write(writing_frame_a, ok_queue_b_frames.popleft(), 'Auto Writing!!')
+            #             self.creator.write_frame(writing_frame_a)  # todo 测试阶段不用生成
+            #             ok_num += 1
+            #             self.pbar.update(1)
+            #     else:
+            #         ok_flag = False
+            #         print(f'直接比对写入了{ok_num}帧')
+            #         ok_num = 0
+            #         self.a_iterator.add_prefix(list(ok_queue_a_frames))
+            #         self.b_iterator.add_prefix(list(ok_queue_b_frames))
+            #         ok_queue_a_frames.clear()
+            #         ok_queue_b_frames.clear()
+            #         print('----------')
+            #     continue  # 跳过本次循环
 
             frame_queue_a.append(frame_a)
             frame_queue_b.append(frame_b)
