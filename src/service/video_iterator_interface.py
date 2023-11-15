@@ -26,13 +26,15 @@ class VideoIteratorI(metaclass=abc.ABCMeta):
     def get_video_info(self) -> (float, (int, int)):
         pass
 
+    @abc.abstractmethod
+    def get_current_index(self):
+        pass
+
+    def set_current_index(self, index):
+        pass
+
 
 class VideoIteratorPrefixI(VideoIteratorI, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def add_prefix(self, arr: List[np.ndarray]):
         pass
-
-    @abc.abstractmethod
-    def get_current_index(self):
-        pass
-

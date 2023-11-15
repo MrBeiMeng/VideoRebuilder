@@ -1,4 +1,5 @@
 import math
+import random
 from typing import List
 
 import cv2
@@ -11,9 +12,9 @@ class VideoIteratorImpl(VideoIteratorI):
     def __init__(self, video_path):
         self.cap = cv2.VideoCapture(video_path)
         if not self.cap.isOpened():
-            print(f"文件对象未打开@[{video_path}]")
+            # print(f"文件对象未打开@[{video_path}]")
             raise Exception(f"文件对象未打开@[{video_path}]")
-        print(f"Open File [{video_path}]: True")
+        # print(f"Open File [{video_path}]: True")
 
         self.video_path = video_path
 
@@ -49,6 +50,59 @@ class VideoIteratorImpl(VideoIteratorI):
     def get_video_info(self) -> (float, (int, int)):
         # 获取视频的帧率和尺寸
         return self.fps_a, (self.width_a, self.height_a)
+
+    def get_current_index(self):
+        return self.current_index
+
+    def set_current_index(self, index):
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
+        self.current_index = index
+
+
+class SampleVideoIteratorImpl(VideoIteratorImpl):
+
+    def __init__(self, video_path, sample_num):
+        """
+        通过概率来
+        :param video_path:
+        :param sample_num: 不管视频多长，从中取出<=total数量的帧
+        """
+        super().__init__(video_path)
+
+        if not sample_num or sample_num <= 0:
+            raise Exception(f'total is None or zero [sample_num = {sample_num}]')
+        self.sample_num = sample_num
+
+        # 计算抛弃每一帧的概率
+        self.abandon_rate = int(self.sample_num / self.get_total_f_num() * 100) / 100
+
+        self.sample_total_frame_size = int(self.total_f_size * (1 - self.abandon_rate))
+        self.sample_iterator_counter = 0
+
+        self.random_float = random
+
+    def get_current_index(self):
+        return self.sample_iterator_counter
+
+    def get_total_f_num(self) -> int:
+        return self.sample_total_frame_size
+
+    def __next__(self) -> np.ndarray:
+
+        if self.current_index < self.total_f_size:
+            # 先进行判断
+            if self.random_float.random() < self.abandon_rate:
+                self.current_index += 1
+
+            ret, frame = self.cap.read()
+            if ret:
+                self.current_index += 1
+                self.sample_iterator_counter += 1
+                return frame
+            else:
+                raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
+        else:
+            raise StopIteration
 
 
 class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
@@ -90,9 +144,6 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
         if self.current_index < 0:
             print("这是因为加入了前置prefix数组,放心，不影响的。")
 
-    def get_current_index(self):
-        return self.current_index
-
 
 class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
 
@@ -109,11 +160,11 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
         self.fps_a = int(new_fps * 1000) / 1000
         self.total_f_size = int(target_frames)
         self.original_frames = original_frames
-        print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
-        print(f"视频原帧帧率与新帧率为[{original_fps}]/[{new_fps}]")
+        # print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
+        # print(f"视频原帧帧率与新帧率为[{original_fps}]/[{new_fps}]")
 
         self.frame_number = 0
-        print(f'步长为{self.step}')
+        # print(f'步长为{self.step}')
 
     def __next__(self) -> np.ndarray:
         if len(self.prefix_list) > 0:
@@ -138,41 +189,33 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
                 raise StopIteration
 
 
-# class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixImpl):
-#
-#     def __init__(self, video_path, target_fps):
-#         super().__init__(video_path)
-#         # 获取原视频的总帧数和帧率
-#         original_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-#         original_fps = self.fps_a
-#
-#         # 计算帧跳过率
-#         self.frame_skip_rate = original_fps // target_fps  # 保证 25 是原始帧率的因子
-#         # print(f"视频原帧总数与新总数为[{original_frames}]/[{self.total_f_size}]")
-#         print(f"视频调整帧率为[{original_fps}原]/[{target_fps}新]")
-#
-#         self.frame_number = 0
-#         self.total_f_size = int((target_fps / original_fps) * self.total_f_size)
-#
-#     def __next__(self) -> np.ndarray:
-#         if len(self.prefix_list) > 0:
-#             self.current_index += 1
-#             return self.prefix_list.pop(0)
-#         else:
-#             if self.current_index < self.total_f_size:
-#                 ret, frame = self.cap.read()
-#                 self.frame_number += 1
-#                 if ret:
-#                     # 只处理和显示每个第 frame_skip_rate 帧
-#                     if self.frame_number % self.frame_skip_rate != 0:
-#                         return self.__next__()
-#
-#                     self.current_index += 1
-#                     return frame
-#                 else:
-#                     raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
-#             else:
-#                 raise StopIteration
+class VideoIteratorPrefixStepV2Impl(VideoIteratorImpl):
+    def __init__(self, video_path, over_step_num):
+        super().__init__(video_path)
+        # 修改total frame 和current index
+        self.original_frame_num = self.total_f_size
+        self.total_f_size = int(self.total_f_size / over_step_num)
+        self.real_frame_number = 0
+        self.over_step = over_step_num
+
+    def __next__(self) -> np.ndarray:
+
+        if self.real_frame_number < self.original_frame_num:
+            ret, frame = self.cap.read()
+            if ret:
+                self.real_frame_number += 1
+                self.current_index += 1
+
+                # 跳过step
+                self.real_frame_number += self.over_step
+                self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.real_frame_number)
+
+                return frame
+            else:
+                raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
+        else:
+            raise StopIteration
+
 
 class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixStepImpl):
 
