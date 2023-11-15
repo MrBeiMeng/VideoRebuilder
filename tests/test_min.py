@@ -24,6 +24,6 @@ def find_min_multiplier_and_divisor(value):
 
 
 # 测试函数
-value = 1.042
+value = 1.489
 multiplier = find_min_multiplier_and_divisor(value)
 print(f'Minimum Multiplier: {multiplier}')

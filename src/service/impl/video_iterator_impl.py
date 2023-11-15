@@ -103,7 +103,7 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
         original_fps = self.cap.get(cv2.CAP_PROP_FPS)
 
         # 计算步长值
-        self.step = original_frames / target_frames
+        self.step = original_frames // target_frames
         # 计算新的帧率
         new_fps = original_fps / self.step
         self.fps_a = int(new_fps * 1000) / 1000
@@ -113,8 +113,6 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
         print(f"视频原帧帧率与新帧率为[{original_fps}]/[{new_fps}]")
 
         self.frame_number = 0
-        # self.step = int(self.step)
-        self.step = int(self.step * 1000) / 1000
         print(f'步长为{self.step}')
 
     def __next__(self) -> np.ndarray:
@@ -129,11 +127,11 @@ class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
                     result = self.frame_number / self.step
                     # 如果当前帧号是步长值的整数倍，则写入输出视频
                     if math.isclose(result, round(result), rel_tol=1e-9):
-                        print('跳过帧=========================')
-                        return self.__next__()
-                    else:
                         self.current_index += 1
                         return frame
+                    else:
+                        # print('跳过帧=========================')
+                        return self.__next__()
                 else:
                     raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
             else:
