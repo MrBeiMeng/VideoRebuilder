@@ -2,18 +2,11 @@ import os
 
 import cv2
 import ffmpeg
-import numpy as np
-from moviepy.video.io.VideoFileClip import VideoFileClip
 
 from src.heigher_service.impl.two_p_fast_dtw_orb_impl import TwoPFastDtwOrbImpl
 from src.heigher_service.impl.two_p_fast_dtw_sift_impl import TwoPFastDtwSiftImpl
 from src.heigher_service.runner_interface import RunnerI
 from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl
-from src.service.video_iterator_interface import VideoIteratorPrefixI
-
-import tensorflow as tf
-# VGG16特征提取器的实现
-import keras.applications as ka
 
 
 class VideoAlignTaskMadajiasijiaImpl(RunnerI):

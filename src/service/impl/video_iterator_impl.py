@@ -145,6 +145,43 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
             print("这是因为加入了前置prefix数组,放心，不影响的。")
 
 
+class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixImpl):
+    def __init__(self, video_path, target_fps):
+        super().__init__(video_path=video_path)
+        self.target_fps = target_fps
+        if target_fps > self.fps_a:
+            raise Exception('帧率不能超过原有帧率')
+        self.sec = 0
+        self.frame_rate = 1 / self.target_fps
+        self.new_current_index = 0  # 这个表示在新帧率上，当前是第几帧
+        self.new_total_frames = int(int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)) * (1 / self.fps_a) / self.frame_rate)
+
+    def get_total_f_num(self) -> int:
+        return self.new_total_frames
+
+    def get_video_info(self) -> (float, (int, int)):
+        # 获取视频的帧率和尺寸
+        return self.fps_a, (self.width_a, self.height_a)
+
+    def get_current_index(self):
+        return self.new_current_index
+
+    def __next__(self) -> np.ndarray:
+        if len(self.prefix_list) > 0:
+            self.new_current_index += 1
+            return self.prefix_list.pop(0)
+        else:
+            self.sec = round(self.sec, 2)
+            self.sec = self.sec + self.frame_rate
+            self.cap.set(cv2.CAP_PROP_POS_MSEC, self.sec * 1000)
+            has_frames, image = self.cap.read()
+            if has_frames:
+                self.new_current_index += 1
+                return image
+            else:
+                raise StopIteration
+
+
 class VideoIteratorPrefixStepImpl(VideoIteratorPrefixImpl):
 
     def __init__(self, video_path, target_frames):
@@ -216,17 +253,16 @@ class VideoIteratorPrefixStepV2Impl(VideoIteratorImpl):
         else:
             raise StopIteration
 
-
-class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixStepImpl):
-
-    def __init__(self, video_path, target_fps):
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            print(f"文件对象未打开@[{video_path}]")
-            raise Exception(f"文件对象未打开@[{video_path}]")
-        # print(f"Open File [{video_path}]: True")
-        original_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        original_fps = cap.get(cv2.CAP_PROP_FPS)
-        target_frames = (target_fps / original_fps) * original_frames
-
-        super().__init__(video_path, target_frames)
+# class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixStepImpl):
+#
+#     def __init__(self, video_path, target_fps):
+#         cap = cv2.VideoCapture(video_path)
+#         if not cap.isOpened():
+#             print(f"文件对象未打开@[{video_path}]")
+#             raise Exception(f"文件对象未打开@[{video_path}]")
+#         # print(f"Open File [{video_path}]: True")
+#         original_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+#         original_fps = cap.get(cv2.CAP_PROP_FPS)
+#         target_frames = (target_fps / original_fps) * original_frames
+#
+#         super().__init__(video_path, target_frames)

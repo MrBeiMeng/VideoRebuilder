@@ -72,10 +72,10 @@ def main():
             avg = int(sys.argv[2])
             print(f"设定的匹配标准是{avg}")
 
-        compare_size = None
+        compare_size = None  # 跳帧的长度
         if len(sys.argv) > 3:
             compare_size = int(sys.argv[3])
-            print(f"设定的匹配长度是{compare_size}")
+            print(f"设定的匹配长度是{compare_size}（此配置项表示跳帧的长度，过长会导致程序缓慢。）")
 
         index = -int(argument)
         target = videos[index]
@@ -84,7 +84,6 @@ def main():
 
         input('回车开始')
 
-        # runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(target[0], target[1], avg)
         runner: RunnerI = VideoAlignTaskMadajiasijiaImpl(video_a_path=target[0],
                                                          video_b_path=target[1], reasonable_avg=avg,
                                                          compare_size=compare_size)
