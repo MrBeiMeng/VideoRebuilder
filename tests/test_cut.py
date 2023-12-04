@@ -12,7 +12,8 @@ class YourClass:
         self.changed = False
 
         # Load previous crop info if exists
-        self.json_path = 'crop_info.json'
+        # self.json_path = 'crop_info.json'
+        self.json_path = 'crop_info_xi_gua.json'
         if os.path.exists(self.json_path):
             with open(self.json_path, 'r') as json_file:
                 self.crop_info = json.load(json_file)
@@ -98,7 +99,8 @@ class YourClass:
         return crop_info
 
     def run(self):
-        iterator = VideoIteratorPrefixImpl(video_path="E:/data/Penguins/44 大战怪怪鱼 (SnakeHead).mp4")
+        iterator = VideoIteratorPrefixImpl(
+            video_path="E:/360MoveData/Users/MrB/Desktop/动物界的生化危机，企鹅吃下百年鲱鱼，结果害自己变成丧尸@不正经的小酥肉.mp4")
 
         while True:
             try:

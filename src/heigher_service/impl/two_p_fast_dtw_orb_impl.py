@@ -63,7 +63,7 @@ class TwoPFastDtwOrbImpl(TwoPFastDtwSiftImpl):
 
         distance = 1 - similarity  # 可以加上一个 判断。
 
-        if distance > 0.8:
-            distance = 1
+        # if distance > 0.8:
+        #     distance = 1
 
         return distance * 100

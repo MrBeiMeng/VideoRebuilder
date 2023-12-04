@@ -8,7 +8,7 @@ from src.service.distance_avg_reasonable_interface import DistanceAvgReasonableI
 
 
 class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
-    def __init__(self, avg_size=10, reasonable_avg=90):
+    def __init__(self, avg_size=1, reasonable_avg=90):
         self.avg_size = avg_size
         self.index_list: deque[Tuple[int, int]] = deque()
         self.distance_list: List = []
@@ -63,10 +63,10 @@ class DistanceAvgReasonableImpl(DistanceAvgReasonableI):
         else:
             # 往内收敛
 
-            if self.reasonable_avg < op_reasonable_avg:
-                self.reasonable_avg = op_reasonable_avg
-            elif self.reasonable_avg - avg > 5:
-                self.reasonable_avg = avg + 5
+            # if op_reasonable_avg > self.reasonable_avg :
+            #     self.reasonable_avg = op_reasonable_avg
+            # elif self.reasonable_avg - avg > 5:
+            #     self.reasonable_avg = avg + 5
 
             pass
 

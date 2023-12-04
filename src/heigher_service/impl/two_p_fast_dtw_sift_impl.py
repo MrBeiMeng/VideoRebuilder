@@ -166,6 +166,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
     def __init__(self, v_a_path, v_b_path, a_iterator=None, b_iterator=None, model=None, output_path=None,
                  output_fps=None, output_size=None, pool_size=None, debug_window=True, reasonable_avg=None,
+                 video_creator=None,
+                 crop_info=None,
                  compare_size=None):
         self.jump_a_flag = None
         self.v_a_path = v_a_path
@@ -177,9 +179,12 @@ class TwoPFastDtwSiftImpl(RunnerI):
         fps_small, _ = self.a_iterator.get_video_info()  # 获取小的帧，这里是A帧率小 # 面向过程编程了
         # self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixFpsImpl(self.v_b_path, fps_small)
         self.b_iterator: VideoIteratorPrefixI = b_iterator or VideoIteratorPrefixImpl(self.v_b_path)
-        # self.model = model or cv2.SIFT_create() # 目前没用上
 
-        self.creator: VideoCreatorI = self.get_video_creator(output_path, fps_small, output_size)  # todo 测试阶段不用生成
+        # self.a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixFpsImpl(self.v_a_path, fps_small)
+        # self.b_iterator: VideoIteratorPrefixI = VideoIteratorPrefixFpsImpl(self.v_b_path, fps_small)
+
+        self.creator: VideoCreatorI = video_creator or self.get_video_creator(output_path, fps_small,
+                                                                              output_size)  # todo 测试阶段不用生成
         self.common_size = self.get_small_size()
 
         range_time = self.b_iterator.get_total_f_num() if self.b_iterator.get_total_f_num() < self.a_iterator.get_total_f_num() else self.a_iterator.get_total_f_num()
@@ -203,7 +208,9 @@ class TwoPFastDtwSiftImpl(RunnerI):
         # 设定窗口名字
         file_name, ext = os.path.splitext(self.v_b_path)
         self.name = file_name
-        self.smooth_size = 5
+        self.smooth_size = 1
+
+        self.crop_info = crop_info
 
     def get_small_size(self):
         fps, (a_w, a_h) = self.a_iterator.get_video_info()
@@ -225,7 +232,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
         # output_fps = fps
         if size is None:
             size = (a_w, a_h) if a_w * a_h > b_w * b_h else (b_w, b_h)
-        output_size = size
+        output_size = (a_w, a_h)
 
         print(f"output info {output_fps},{output_size}")
 
@@ -259,7 +266,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
             cropped_frame_a = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
 
             # 调整截取后的frame_a的分辨率以匹配frame_b
-            resized_frame_a = cv2.resize(cropped_frame_a, (int(self.common_size[0] / 2), int(self.common_size[1] / 2)),
+            resized_frame_a = cv2.resize(cropped_frame_a, (int(self.common_size[0] / 5), int(self.common_size[1] / 5)),
                                          interpolation=cv2.INTER_AREA)
             # resized_frame_b = cv2.resize(frame_b, (cropped_frame_a.shape[1], cropped_frame_a.shape[0]),
             #                              interpolation=cv2.INTER_AREA)
@@ -269,7 +276,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
             # normalized_image = cv2.normalize(resized_frame_a, None, 0, 255, cv2.NORM_MINMAX)
             # 直方图均衡化
             equalized_image_a = cv2.equalizeHist(resized_frame_a)
-            blurred_frame_a = cv2.GaussianBlur(equalized_image_a, (51, 51), 0)
+            blurred_frame_a = cv2.GaussianBlur(equalized_image_a, (41, 41), 0)
 
             # # 应用边缘卷积
             # edge_convolved_imageA = cv2.filter2D(resized_frame_a, -1, self.sobel_x)
@@ -277,24 +284,24 @@ class TwoPFastDtwSiftImpl(RunnerI):
             return blurred_frame_a
         else:
             frame = cv2.resize(frame,
-                               (int(self.common_size[0] / 2), int(self.common_size[1] / 2)))  # 调整帧大小来降低计算量
+                               (int(self.common_size[0] / 5), int(self.common_size[1] / 5)))  # 调整帧大小来降低计算量
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             # # 归一化
             # # normalized_image = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
             # 直方图均衡化
             frame = cv2.equalizeHist(frame)
-            frame = cv2.GaussianBlur(frame, (51, 51), 0)
+            frame = cv2.GaussianBlur(frame, (41, 41), 0)
 
             # frame = cv2.filter2D(frame, -1, self.sobel_x)
 
         return frame
 
     @staticmethod
-    def cut_frame(frame_a, frame_b):
+    def cut_frame(frame_a, frame_b, crop_info=None):
 
         # // 使用util中的裁切方法
-        crop_info = FrameCutUtil().crop_info
+        crop_info = crop_info or FrameCutUtil().crop_info
 
         height, width = frame_b.shape[:2]
 
@@ -471,7 +478,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
             feature_a = self.get_feature(frame_a)
             feature_b = self.get_feature(frame_b)
-            feature_a, feature_b = self.cut_frame(feature_a, feature_b)
+            feature_a, feature_b = self.cut_frame(feature_a, feature_b, crop_info=self.crop_info)
 
             # -- 读取时直接对比，如果符合标准，直接写
             # if ok_flag:
@@ -519,7 +526,7 @@ class TwoPFastDtwSiftImpl(RunnerI):
                 for i in range(total_path_num):
                     index_a, index_b = path[i]
 
-                    stopping_flag = total_path_num - i <= 20
+                    stopping_flag = total_path_num - i <= 0
                     self.jump_a_flag = False
 
                     if p_set.exist((index_a, index_b)):
@@ -577,9 +584,12 @@ class TwoPFastDtwSiftImpl(RunnerI):
                                 # else:
                                 temp_a_iterator: VideoIteratorPrefixI = VideoIteratorPrefixImpl(self.v_a_path)
 
-                                for _ in range(
-                                        self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index() - 100):
-                                    next(temp_a_iterator)
+                                new_index = self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index() - 1
+                                temp_a_iterator.set_current_index(new_index)  # 从头开始
+
+                                # for _ in range(
+                                #         self.a_iterator.get_current_index() + 1 - temp_a_iterator.get_current_index() - 100):
+                                #     next(temp_a_iterator)
 
                                 print("初始化tempA完成")
 
@@ -588,7 +598,11 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
                                 while True:  # 跳A ，从这个点开始，B 不动，A向后遍历 。直到满足条件
                                     try:
-                                        frame_a = next(temp_a_iterator)
+                                        try:
+                                            frame_a = next(temp_a_iterator)
+                                            frame_a = next(temp_a_iterator)
+                                        except StopIteration:
+                                            temp_a_iterator = VideoIteratorPrefixImpl(self.v_a_path)
 
                                         self.show_when_write(frame_a, frame_b, 'Jumping!')
 
@@ -617,19 +631,21 @@ class TwoPFastDtwSiftImpl(RunnerI):
 
                                         # 连续对比self.smooth_size帧
                                         print(
-                                            f"{tmp_count} -- self.smooth_size帧平均对比差异值 (len(temp_compare_frame_queue_a) = [{len(temp_compare_frame_queue_a)}]) {comparing_distance / self.smooth_size} with flag [{self.distance_avg_reasonable_check.reasonable_avg - 5}]")
+                                            f"{tmp_count} -- self.smooth_size帧平均对比差异值 (len(temp_compare_frame_queue_a) = [{len(temp_compare_frame_queue_a)}]) {comparing_distance / self.smooth_size} with flag [{self.distance_avg_reasonable_check.reasonable_avg}]")
 
                                         if tmp_count >= self.smooth_size:
                                             if comparing_distance / self.smooth_size < self.last_min_distance:
                                                 self.last_min_distance = comparing_distance / self.smooth_size
 
-                                        if tmp_count >= self.smooth_size and comparing_distance / self.smooth_size < self.distance_avg_reasonable_check.reasonable_avg - 5:  # todo 原来18
+                                        if tmp_count >= self.smooth_size and comparing_distance / self.smooth_size < self.distance_avg_reasonable_check.reasonable_avg:  # todo 原来18
 
                                             print("尝试成功")
 
                                             a_jump = temp_a_iterator.get_current_index() - self.a_iterator.get_current_index() - self.smooth_size
-                                            for _ in range(a_jump):  # 记录数字。这里不需要缓存了，另一个迭代器尝试匹配，成功了就行
-                                                next(self.a_iterator)
+                                            # for _ in range(a_jump):  # 记录数字。这里不需要缓存了，另一个迭代器尝试匹配，成功了就行
+                                            #     next(self.a_iterator)
+
+                                            self.a_iterator.set_current_index(temp_a_iterator.get_current_index() -1)
 
                                             self.distance_avg_reasonable_check: DistanceAvgReasonableI = DistanceAvgReasonableImpl(
                                                 reasonable_avg=self.reasonable_avg)  # 可以修改参数
@@ -776,6 +792,8 @@ class TwoPFastDtwSiftImpl(RunnerI):
     def done_method(self):
         self.pbar.close()
         self.creator.release()  # todo 测试阶段不用生成
+        self.a_iterator.release()
+        self.b_iterator.release()
 
         print("结束")
 
@@ -786,6 +804,9 @@ class TwoPFastDtwSiftImpl(RunnerI):
             if frame_a.shape != frame_b.shape:
                 # print("Frames have different dimensions, resizing frame2 to match frame1")
                 frame_a = cv2.resize(frame_a, (frame_b.shape[1], frame_b.shape[0]))
+
+            frame_a = self.resize_image(frame_a, 480)
+            frame_b = self.resize_image(frame_b, 480)
 
             # 使用numpy的hstack函数水平堆叠两个帧
             merged_frame = np.hstack((frame_a, frame_b))
@@ -810,6 +831,9 @@ class TwoPFastDtwSiftImpl(RunnerI):
                 # print("Frames have different dimensions, resizing frame2 to match frame1")
                 frame_a = cv2.resize(frame_a, (frame_b.shape[1], frame_b.shape[0]))
             # frame_b = self.resize_image(frame_b, frame_a.shape[1])
+
+            frame_a = self.resize_image(frame_a, 480)
+            frame_b = self.resize_image(frame_b, 480)
 
             # 使用numpy的hstack函数水平堆叠两个帧
             merged_frame = np.hstack((frame_a, frame_b))

@@ -6,7 +6,7 @@ import ffmpeg
 from src.heigher_service.impl.two_p_fast_dtw_orb_impl import TwoPFastDtwOrbImpl
 from src.heigher_service.impl.two_p_fast_dtw_sift_impl import TwoPFastDtwSiftImpl
 from src.heigher_service.runner_interface import RunnerI
-from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl
+from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl, VideoIteratorPrefixFpsImpl
 
 
 class VideoAlignTaskMadajiasijiaImpl(RunnerI):
@@ -66,7 +66,7 @@ class VideoAlignTaskMadajiasijiaImpl(RunnerI):
                                               v_b_path=self.video_b_path,
                                               a_iterator=a_iterator,
                                               output_path=output_path,
-                                              pool_size=200, reasonable_avg=self.reasonable_avg,
+                                              pool_size=50, reasonable_avg=self.reasonable_avg,
                                               compare_size=self.compare_size)
 
         runner.run()

@@ -58,6 +58,9 @@ class VideoIteratorImpl(VideoIteratorI):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
         self.current_index = index
 
+    def release(self):
+        self.cap.release()
+
 
 class SampleVideoIteratorImpl(VideoIteratorImpl):
 
@@ -121,6 +124,11 @@ class VideoIteratorPrefixImpl(VideoIteratorPrefixI, VideoIteratorImpl):
         else:
             return super().__next__()
 
+    def set_current_index(self, index):
+        self.prefix_list.clear()
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
+        self.current_index = index
+
     def add_prefix(self, arr: List[np.ndarray]):
 
         if len(arr) == 0:
@@ -150,7 +158,7 @@ class VideoIteratorPrefixFpsImpl(VideoIteratorPrefixImpl):
         super().__init__(video_path=video_path)
         self.target_fps = target_fps
         if target_fps > self.fps_a:
-            raise Exception('帧率不能超过原有帧率')
+            print('帧率超过原有帧率')
         self.sec = 0
         self.frame_rate = 1 / self.target_fps
         self.new_current_index = 0  # 这个表示在新帧率上，当前是第几帧

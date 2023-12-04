@@ -33,6 +33,9 @@ class VideoIteratorI(metaclass=abc.ABCMeta):
     def set_current_index(self, index):
         pass
 
+    def release(self):
+        pass
+
 
 class VideoIteratorPrefixI(VideoIteratorI, metaclass=abc.ABCMeta):
     @abc.abstractmethod
