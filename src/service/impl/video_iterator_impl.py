@@ -11,6 +11,7 @@ from src.service.video_iterator_interface import VideoIteratorI, VideoIteratorPr
 class VideoIteratorImpl(VideoIteratorI):
     def __init__(self, video_path):
         self.cap = cv2.VideoCapture(video_path)
+        # self.cap = cv2.cudacodec.createVideoReader(video_path)
         if not self.cap.isOpened():
             # print(f"文件对象未打开@[{video_path}]")
             raise Exception(f"文件对象未打开@[{video_path}]")
@@ -28,13 +29,17 @@ class VideoIteratorImpl(VideoIteratorI):
 
         self.current_index = 0
 
+        self.has_read = False  # 读取过
+
     def __iter__(self):
         self.current_index = 0
         return self
 
     def __next__(self) -> np.ndarray:
+        self.has_read = True
 
         if self.current_index < self.total_f_size:
+            # ret, frame = self.cap.nextFrame()
             ret, frame = self.cap.read()
             if ret:
                 self.current_index += 1
@@ -52,6 +57,8 @@ class VideoIteratorImpl(VideoIteratorI):
         return self.fps_a, (self.width_a, self.height_a)
 
     def get_current_index(self):
+        if self.has_read:
+            return self.current_index - 1
         return self.current_index
 
     def set_current_index(self, index):

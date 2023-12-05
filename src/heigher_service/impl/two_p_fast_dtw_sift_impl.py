@@ -3,7 +3,7 @@ import os.path
 from collections import deque
 from typing import Tuple, List
 
-import cv2
+
 import numpy as np
 from fastdtw import fastdtw
 from tqdm import tqdm
@@ -22,6 +22,13 @@ from skimage import io, color, feature, exposure
 from scipy.spatial import distance as distance_tool
 
 from skimage.metrics import structural_similarity as compare_ssim
+
+from tqdm import tqdm
+
+import cv2
+
+# import cv2 as cv
+print(f'OpenCV: {cv2.__version__} for python installed and working')
 
 
 class PathSetI(metaclass=abc.ABCMeta):

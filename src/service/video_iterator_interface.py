@@ -37,6 +37,13 @@ class VideoIteratorI(metaclass=abc.ABCMeta):
         pass
 
 
+class FeatureIteratorI(VideoIteratorI, metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def do_release(self):
+        pass
+
+
 class VideoIteratorPrefixI(VideoIteratorI, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def add_prefix(self, arr: List[np.ndarray]):

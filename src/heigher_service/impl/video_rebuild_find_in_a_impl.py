@@ -1,3 +1,5 @@
+from collections import deque
+
 import cv2
 from tqdm import tqdm
 
@@ -8,10 +10,11 @@ from src.heigher_service.runner_interface import RunnerI
 from src.heigher_service.utils.common import BLUtils
 from src.heigher_service.utils.common_sequence import CSUtils
 from src.heigher_service.utils.frame_cut_util import FrameCutUtilXiGua
+from src.service.impl.featuer_iterator_cache_impl import FeatureIteratorCacheImpl
 from src.service.impl.video_creator_impl import VideoCreatorImpl
 from src.service.impl.video_iterator_impl import VideoIteratorPrefixImpl, VideoIteratorImpl
 from src.service.impl.video_key_frames_impl import VideoKeyFramesImpl
-from src.service.video_iterator_interface import VideoIteratorI
+from src.service.video_iterator_interface import VideoIteratorI, FeatureIteratorI
 from src.service.video_key_frames_interface import VideoKeyFramesI
 
 
@@ -36,15 +39,15 @@ class VideoRebuildFindInAImpl(RunnerI):
         common_size = BLUtils.get_common_size(self.dst_path, self.target_path)
         print(f'计算common_size = [{common_size}]')
 
-        iterator_b = VideoIteratorImpl(self.target_path)
+        iterator_b: FeatureIteratorI = FeatureIteratorCacheImpl(self.target_path, common_size, self.crop_info_path)
         tbar = tqdm(desc='整体进度', unit='帧', total=iterator_b.get_total_f_num())
         total_distance = 0
+        count = 0
 
         # 直接拿B的帧去A中寻找，第一步找到多个可能值，第二步从这些可能值中找到最长的，保存下来。从这个点继续向后匹配
         while True:
             try:
-                frame_b = next(iterator_b)
-                feature_b = BLUtils.get_cropped_feature(frame_b, common_size, self.crop_info_path)
+                feature_b = next(iterator_b)
             except StopIteration:
                 break
 
@@ -54,6 +57,9 @@ class VideoRebuildFindInAImpl(RunnerI):
             # 第二步，寻找最长的正确匹配
             # 2.1 从多个起点处获得多个迭代器以及匹配好的长度,不要忘了释放资源
             working_a_iterators = self._generate_working_a_iterators(common_size, iterator_b, possibly_a_starts)
+
+            if len(working_a_iterators) == 0:
+                continue
 
             # 2.2 筛选出最合理的a迭代器
             best_a_iterator, longest_len, distance = self._get_best_a_iterator(working_a_iterators)
@@ -66,11 +72,15 @@ class VideoRebuildFindInAImpl(RunnerI):
 
             # log
             tbar.update(longest_len)
+            count += longest_len
             total_distance += distance
             tbar.set_postfix_str(
-                f'整体差异值[total:{int(total_distance)} pre:{int(total_distance / iterator_b.get_current_index())}]')
+                f'整体差异值[total:{int(total_distance)}/{iterator_b.get_current_index()} pre:{int(total_distance / iterator_b.get_current_index())}] 丢失:{iterator_b.get_current_index() + 1 - count}')
+
         tbar.close()
-        iterator_b.release()
+        iterator_a: FeatureIteratorI = FeatureIteratorCacheImpl(self.dst_path, common_size, self.crop_info_path)
+        iterator_a.do_release()
+        iterator_b.do_release()
 
     def _get_best_a_iterator(self, working_a_iterators):
         working_a_iterators.sort(key=lambda x: x[1], reverse=True)  # 由大到小排序
@@ -90,13 +100,14 @@ class VideoRebuildFindInAImpl(RunnerI):
         working_a_iterators = []  # (iter,len,total_distance)
         for p_a_s in possibly_a_starts:
             # 这是的a起点为 p_a_s b起点为fb.current_index
-            temp_iterator_a, temp_iterator_b = VideoIteratorImpl(self.dst_path), VideoIteratorImpl(self.target_path)
+            temp_iterator_a, temp_iterator_b = FeatureIteratorCacheImpl(self.dst_path, common_size,
+                                                                        self.crop_info_path), FeatureIteratorCacheImpl(
+                self.target_path, common_size, self.crop_info_path)
             temp_iterator_a.set_current_index(p_a_s)
-            temp_iterator_b.set_current_index(iterator_b.get_current_index())
+            temp_iterator_b.set_current_index(iterator_b.get_current_index())  # !! 索引问题，因为上一步使用了数组，所以这里b迭代器索引-1
 
             # 逐帧比较两个迭代器，遇到第一个合理的值之后，从十个中选一个最合理的再向后匹配
-            temp_frame_b = next(temp_iterator_b)
-            temp_feature_b = BLUtils.get_cropped_feature(temp_frame_b, common_size, self.crop_info_path)
+            temp_feature_b = next(temp_iterator_b)
 
             # 寻找最合理的A起点
             self._set_temp_a_iterator_index_to_best_compare(common_size, temp_feature_b, temp_iterator_a)
@@ -107,10 +118,8 @@ class VideoRebuildFindInAImpl(RunnerI):
             # 这一帧B已经比对过了
             while True:
                 try:
-                    temp_frame_a = next(temp_iterator_a)
-                    temp_feature_a = BLUtils.get_cropped_feature(temp_frame_a, common_size, self.crop_info_path)
-                    temp_frame_b = next(temp_iterator_b)
-                    temp_feature_b = BLUtils.get_cropped_feature(temp_frame_b, common_size, self.crop_info_path)
+                    temp_feature_a = next(temp_iterator_a)
+                    temp_feature_b = next(temp_iterator_b)
                 except StopIteration:
                     break
 
@@ -132,8 +141,7 @@ class VideoRebuildFindInAImpl(RunnerI):
         found = False
         while True:
             try:
-                temp_frame_a = next(temp_iterator_a)
-                temp_feature_a = BLUtils.get_cropped_feature(temp_frame_a, common_size, self.crop_info_path)
+                temp_feature_a = next(temp_iterator_a)
             except StopIteration:
                 break
 
@@ -152,33 +160,43 @@ class VideoRebuildFindInAImpl(RunnerI):
                 final_a_start, min_distance = short_a_start_list[0]
                 temp_iterator_a.set_current_index(final_a_start)
                 print(f'最小差异值[{min_distance}]')
-                break
+                return
+
+        if found:
+            short_a_start_list.sort(key=lambda x: x[1])  # 由小到大排序
+            # print('起点差异值数组', short_a_start_list)
+
+            # 选择差异值最小的点作为起点
+            final_a_start, min_distance = short_a_start_list[0]
+            temp_iterator_a.set_current_index(final_a_start)
+            print(f'最小差异值[{min_distance}]')
 
     def find_possibly_a_starts(self, common_size, feature_b):
-        iterator_a = VideoIteratorImpl(self.dst_path)
+        feature_iterator_a = FeatureIteratorCacheImpl(self.dst_path, common_size, self.crop_info_path)
 
-        tbar = tqdm(desc='寻找可能的A起点', unit='帧', total=iterator_a.get_total_f_num())
+        # tbar = tqdm(desc='寻找可能的A起点', unit='帧', total=feature_iterator_a.get_total_f_num())
 
         possibly_a_starts = []
         min_distance = 999
         # 第一步，寻找所有可能的起点
         while True:
             try:
-                frame_a = next(iterator_a)
-                feature_a = BLUtils.get_cropped_feature(frame_a, common_size, self.crop_info_path)
+                feature_a = next(feature_iterator_a)
+                feature_a = next(feature_iterator_a)
+                feature_a = next(feature_iterator_a)
 
-                tbar.update(1)
+                # tbar.update(3)
             except StopIteration:
                 break
             distance = BLUtils.get_distance(feature_a, feature_b)
             if distance < 20:
                 if distance < min_distance:
                     min_distance = distance
-                possibly_a_starts.append(iterator_a.get_current_index())
-                tbar.set_postfix_str(
-                    f'找到了[{len(possibly_a_starts)}]个起点，当前起点差异值[{int(distance)}]，最小差异值[{int(min_distance)}]')
+                possibly_a_starts.append(feature_iterator_a.get_current_index())
+                # tbar.set_postfix_str(
+                #     f'找到了[{len(possibly_a_starts)}]个起点，当前起点差异值[{int(distance)}]，最小差异值[{int(min_distance)}]')
 
-        tbar.close()
+        # tbar.close()
         # 起点归一化
         print('起点归一化')
         final_possibly_a_starts = []
@@ -188,7 +206,6 @@ class VideoRebuildFindInAImpl(RunnerI):
                 final_possibly_a_starts.append(new_p_a_s)
         print(f'剩余[{len(final_possibly_a_starts)}]个起点')
 
-        iterator_a.release()
         return final_possibly_a_starts
 
     def _get_video_creator(self):

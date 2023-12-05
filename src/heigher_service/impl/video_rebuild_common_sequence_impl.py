@@ -1,4 +1,4 @@
-import cv2
+
 from tqdm import tqdm
 
 from src.entity.entitys import KeyFrame
@@ -14,6 +14,8 @@ from src.service.impl.video_key_frames_impl import VideoKeyFramesImpl
 from src.service.video_iterator_interface import VideoIteratorI
 from src.service.video_key_frames_interface import VideoKeyFramesI
 
+
+import cv2
 
 class VideoRebuildCommonSequenceImpl(RunnerI):
 
