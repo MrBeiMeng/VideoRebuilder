@@ -15,15 +15,14 @@ import os
 
 from tqdm import tqdm
 
+from tests.test_generate_element import compare_ssim_cpu
+
 # 使用os模块中的add_dll_directory函数
 # 用于将指定路径添加到DLL搜索路径中，以便在程序运行时加载DLL文件
 os.add_dll_directory(r'C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.8\\bin')
 os.add_dll_directory(r'E:\\MrB\\Downloads\\opencv_contrib_cuda_4.6.0.20221106_win_amd64 (1)\\install\\x64\\vc17\\bin')
 
 import cv2
-
-# import cv2 as cv
-print(f'OpenCV: {cv2.__version__} for python installed and working')
 
 # print(cv2.cuda.printCudaDeviceInfo(0))
 
@@ -73,9 +72,9 @@ tbar = tqdm(desc='读取视频', unit='帧')
 # gpu
 cap = cv2.cudacodec.createVideoReader(video_path)
 
-    # frame = frame.download()
-    # cv2.imshow('image', frame)
-    # cv2.waitKey(1)
+# frame = frame.download()
+# cv2.imshow('image', frame)
+# cv2.waitKey(1)
 
 tbar.close()
 

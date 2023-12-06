@@ -1,12 +1,16 @@
 import os
 import typing
 
+import PIL
 import cv2
 import numpy as np
 
 from src.heigher_service.utils.frame_cut_util import FrameCutUtil, FrameCutUtilXiGua
 from src.service.impl.video_iterator_impl import VideoIteratorImpl
 from skimage.metrics import structural_similarity as compare_ssim
+# from SSIM_PIL import compare_ssim
+from SSIM_PIL import compare_ssim as compare_ssim_gpu
+from PIL import Image
 
 from src.service.video_iterator_interface import VideoIteratorI
 
@@ -51,7 +55,7 @@ class BLUtils:
 
             # 调整截取后的frame_a的分辨率以匹配frame_b
             resized_frame_a = cv2.resize(cropped_frame_a,
-                                         (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 180)),
+                                         (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 260)),
                                          interpolation=cv2.INTER_AREA)
             # resized_frame_b = cv2.resize(frame_b, (cropped_frame_a.shape[1], cropped_frame_a.shape[0]),
             #                              interpolation=cv2.INTER_AREA)
@@ -69,7 +73,7 @@ class BLUtils:
             return blurred_frame_a
         else:
             frame = cv2.resize(frame,
-                               (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 180)),
+                               (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 260)),
                                interpolation=cv2.INTER_AREA)  # 调整帧大小来降低计算量
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -82,6 +86,37 @@ class BLUtils:
             # frame = cv2.filter2D(frame, -1, self.sobel_x)
 
         return frame
+
+    @staticmethod
+    def calculate_histogram(frame, bins=256):
+        """ 计算灰度图像的直方图 """
+        hist = cv2.calcHist([frame], [0], None, [bins], [0, 256])
+        hist = cv2.normalize(hist, hist).flatten()
+        return hist
+
+    @staticmethod
+    def average_hash(feature, hash_size=64):
+        # 缩放到 32x32
+        resized = cv2.resize(feature, (hash_size, hash_size), interpolation=cv2.INTER_LINEAR)
+        # 计算平均值
+        avg = resized.mean()
+        # 计算哈希
+        hash_value = 0
+        for i in range(hash_size):
+            for j in range(hash_size):
+                bit = 0 if resized[i, j] < avg else 1
+                hash_value |= (bit << (i * hash_size + j))
+        return hash_value
+
+    @staticmethod
+    def hamming_distance(hash1, hash2):
+        # XOR 两个哈希值，然后计算结果中的1的个数
+        x = hash1 ^ hash2
+        distance = 0
+        while x:
+            distance += 1
+            x &= x - 1
+        return distance
 
     @staticmethod
     def crop_feature(feature, crop_info_path: str):
@@ -136,6 +171,29 @@ class BLUtils:
 
         # 计算SSIM
         ssim_value, _ = compare_ssim(feature_a, feature_b, full=True)
+
+        # B帧全黑或全白检测
+        # 设置阈值
+        lower_threshold = 30  # 低于此值将被认为是黑色
+        upper_threshold = 245  # 高于此值将被认为是白色
+
+        # 检查是否接近全黑或全白
+        # if np.max(feature_b) <= lower_threshold:
+        #     # print("The B is nearly entirely black.")
+        #     ssim_value = 1
+
+        distance = ((2 - (ssim_value + 1)) / 2) * 100
+
+        # Draw matches
+        # TwoPFastDtwSiftImpl.draw_matches(distance=distance, feature_a=feature_a, feature_b=feature_b)
+
+        return distance
+
+    @staticmethod
+    def get_distance_gpu(image_1, image_2: PIL.Image):
+
+        # 计算SSIM
+        ssim_value = compare_ssim_gpu(image_1, image_2)
 
         # B帧全黑或全白检测
         # 设置阈值

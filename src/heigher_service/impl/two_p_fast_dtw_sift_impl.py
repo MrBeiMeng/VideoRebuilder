@@ -27,8 +27,7 @@ from tqdm import tqdm
 
 import cv2
 
-# import cv2 as cv
-print(f'OpenCV: {cv2.__version__} for python installed and working')
+
 
 
 class PathSetI(metaclass=abc.ABCMeta):
