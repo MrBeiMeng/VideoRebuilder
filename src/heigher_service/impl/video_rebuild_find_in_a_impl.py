@@ -118,9 +118,7 @@ class VideoRebuildFindInAImpl(RunnerI):
             # 将 NumPy 数组转换为 PIL 图像
             # pil_image = Image.fromarray(rgb_image)
 
-            # 计算直方图平均值
-            element = (np.mean(BLUtils.calculate_histogram(feature)), iterator_a.get_current_index())
-            q.put((iterator_a.get_current_index(), feature, element))
+            q.put((iterator_a.get_current_index(), feature))
 
         iterator_a.release()
 
@@ -160,7 +158,7 @@ class VideoRebuildFindInAImpl(RunnerI):
         count = 0
         while True:
             try:
-                frame_index, feature, hist_mean_element = q.get(timeout=5)
+                frame_index, feature = q.get(timeout=5)
                 GlobalFeatureMap().feature_map[self.dst_path][frame_index] = feature
                 GlobalAvgHashMap().add_feature(self.dst_path, index=frame_index, feature=feature)
                 count += 1
@@ -335,21 +333,21 @@ class VideoRebuildFindInAImpl(RunnerI):
         indices = []
         min_hash_distance = 99999
         # 从hash数组中寻找接近的值
-        for index_a, hash_a in enumerate(GlobalAvgHashMap().avg_hash_map[self.dst_path]):
+        for index_key, hash_a in GlobalAvgHashMap().avg_hash_map[self.dst_path].items():
             distance = BLUtils.hamming_distance(hash_a, hash_b)
 
             if distance < min_hash_distance:
                 min_hash_distance = distance
             # print(distance)
-            if distance < 2300:
-                indices.append(index_a)
+            if distance < 5:
+                indices.append(index_key)
 
         possibly_a_starts = []
         min_distance = 999
         for index_a in indices:
             feature_a = GlobalFeatureMap().feature_map[self.dst_path][index_a]
             distance = BLUtils.get_distance(feature_a, feature_b)
-            if distance < 10:
+            if distance < 8:
                 if distance < min_distance:
                     min_distance = distance
                 possibly_a_starts.append(index_a)

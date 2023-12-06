@@ -55,7 +55,7 @@ class BLUtils:
 
             # 调整截取后的frame_a的分辨率以匹配frame_b
             resized_frame_a = cv2.resize(cropped_frame_a,
-                                         (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 260)),
+                                         (64, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 64)),
                                          interpolation=cv2.INTER_AREA)
             # resized_frame_b = cv2.resize(frame_b, (cropped_frame_a.shape[1], cropped_frame_a.shape[0]),
             #                              interpolation=cv2.INTER_AREA)
@@ -65,7 +65,7 @@ class BLUtils:
             # normalized_image = cv2.normalize(resized_frame_a, None, 0, 255, cv2.NORM_MINMAX)
             # 直方图均衡化
             equalized_image_a = cv2.equalizeHist(resized_frame_a)
-            blurred_frame_a = cv2.GaussianBlur(equalized_image_a, (11, 11), 0)
+            blurred_frame_a = cv2.GaussianBlur(equalized_image_a, (5, 5), 0)
 
             # # 应用边缘卷积
             # edge_convolved_imageA = cv2.filter2D(resized_frame_a, -1, sobel_x)
@@ -73,7 +73,7 @@ class BLUtils:
             return blurred_frame_a
         else:
             frame = cv2.resize(frame,
-                               (260, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 260)),
+                               (64, int(int(common_size[1] / 5) / int(common_size[0] / 5) * 64)),
                                interpolation=cv2.INTER_AREA)  # 调整帧大小来降低计算量
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -81,7 +81,7 @@ class BLUtils:
             # # normalized_image = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
             # 直方图均衡化
             frame = cv2.equalizeHist(frame)
-            frame = cv2.GaussianBlur(frame, (11, 11), 0)
+            frame = cv2.GaussianBlur(frame, (5, 5), 0)
 
             # frame = cv2.filter2D(frame, -1, self.sobel_x)
 
@@ -95,27 +95,33 @@ class BLUtils:
         return hist
 
     @staticmethod
-    def average_hash(feature, hash_size=64):
+    def average_hash(feature, hash_size=8) -> np.ndarray:
         # 缩放到 32x32
         resized = cv2.resize(feature, (hash_size, hash_size), interpolation=cv2.INTER_LINEAR)
-        # 计算平均值
-        avg = resized.mean()
-        # 计算哈希
-        hash_value = 0
-        for i in range(hash_size):
-            for j in range(hash_size):
-                bit = 0 if resized[i, j] < avg else 1
-                hash_value |= (bit << (i * hash_size + j))
-        return hash_value
+        # # 计算平均值
+        # avg = resized.mean()
+        # # 计算哈希
+        # hash_value = 0
+        # for i in range(hash_size):
+        #     for j in range(hash_size):
+        #         bit = 0 if resized[i, j] < avg else 1
+        #         hash_value |= (bit << (i * hash_size + j))
+        return resized
 
     @staticmethod
     def hamming_distance(hash1, hash2):
         # XOR 两个哈希值，然后计算结果中的1的个数
-        x = hash1 ^ hash2
-        distance = 0
-        while x:
-            distance += 1
-            x &= x - 1
+        # x = hash1 ^ hash2
+        # distance = 0
+        # while x:
+        #     distance += 1
+        #     x &= x - 1
+        # return distance
+
+        # 计算SSIM
+        ssim_value, _ = compare_ssim(hash1, hash2, full=True)
+        distance = ((2 - (ssim_value + 1)) / 2) * 100
+
         return distance
 
     @staticmethod
@@ -165,7 +171,7 @@ class BLUtils:
         return common_size
 
     @staticmethod
-    def get_distance(feature_a, feature_b):
+    def get_distance(feature_a: np.ndarray, feature_b: np.ndarray):
         feature_a = feature_a.astype(np.uint8)
         feature_b = feature_b.astype(np.uint8)
 
