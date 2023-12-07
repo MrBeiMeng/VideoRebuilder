@@ -7,8 +7,8 @@ import os
 
 if __name__ == '__main__':
     runner: RunnerI = VideoRebuildFindInAImpl(
-        "F:/xunleiyunpan/S02E06.Hard.Boiled.Eggy.mkv",
-        "E:/360MoveData/Users/MrB/Desktop/企鹅特工孵化鸭子，用训练作为胎教，结果鸭子一出生就成为特工@不正经的小酥肉.mp4")
+        "E:/data/02e06 Source.mp4",
+        "E:/data/202312071923.mp4")
 
     # runner: RunnerI = VideoRebuildFindInAImpl(
     #     "E:/360MoveData/Users/MrB/Desktop/源视频A.mp4",

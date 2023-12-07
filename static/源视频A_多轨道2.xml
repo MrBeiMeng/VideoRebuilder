@@ -104,26 +104,7 @@
 								</audio>
 							</media>
 						</file>
-						<link>
-							<linkclipref>clipitem-34</linkclipref>
-							<mediatype>video</mediatype>
-							<trackindex>1</trackindex>
-							<clipindex>1</clipindex>
-						</link>
-						<link>
-							<linkclipref>clipitem-41</linkclipref>
-							<mediatype>audio</mediatype>
-							<trackindex>1</trackindex>
-							<clipindex>1</clipindex>
-							<groupindex>1</groupindex>
-						</link>
-						<link>
-							<linkclipref>clipitem-46</linkclipref>
-							<mediatype>audio</mediatype>
-							<trackindex>2</trackindex>
-							<clipindex>1</clipindex>
-							<groupindex>1</groupindex>
-						</link>
+
 						<logginginfo>
 							<description></description>
 							<scene></scene>

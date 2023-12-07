@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xmeml>
+<xmeml version="4">
+    <sequence id="sequence-2" TL.SQAudioVisibleBase="0" TL.SQVideoVisibleBase="0" TL.SQVisibleBaseTime="0"
+              TL.SQAVDividerPosition="0.5" TL.SQHideShyTracks="0" TL.SQHeaderWidth="236"
+              Monitor.ProgramZoomOut="2391984000000" Monitor.ProgramZoomIn="0" TL.SQTimePerPixel="0.019847922148488847"
+              MZ.EditLine="2836512000000" MZ.Sequence.PreviewFrameSizeHeight="1080"
+              MZ.Sequence.PreviewFrameSizeWidth="1920" MZ.Sequence.AudioTimeDisplayFormat="200"
+              MZ.Sequence.PreviewRenderingClassID="1297106761" MZ.Sequence.PreviewRenderingPresetCodec="1297107278"
+              MZ.Sequence.PreviewRenderingPresetPath="EncoderPresets\SequencePreview\9678af98-a7b7-4bdb-b477-7ac9c8df4a4e\I-Frame Only MPEG.epr"
+              MZ.Sequence.PreviewUseMaxRenderQuality="false" MZ.Sequence.PreviewUseMaxBitDepth="false"
+              MZ.Sequence.EditingModeGUID="9678af98-a7b7-4bdb-b477-7ac9c8df4a4e"
+              MZ.Sequence.VideoTimeDisplayFormat="100" MZ.WorkOutPoint="2540160000000" MZ.WorkInPoint="0"
+              MZ.ZeroPoint="0" explodedTracks="true">
+        <uuid>{base_id}</uuid>
+        <duration>{total_frames}</duration>
+        <rate>
+            <timebase>{fps}</timebase>
+            <ntsc>FALSE</ntsc>
+        </rate>
+        <name>{base_name}</name>
+        <media>
+            <video>
+                <format>
+                    <samplecharacteristics>
+                        <rate>
+                            <timebase>{fps}</timebase>
+                            <ntsc>FALSE</ntsc>
+                        </rate>
+                        <codec>
+                            <name>Apple ProRes 422</name>
+                            <appspecificdata>
+                                <appname>Final Cut Pro</appname>
+                                <appmanufacturer>Apple Inc.</appmanufacturer>
+                                <appversion>7.0</appversion>
+                                <data>
+                                    <qtcodec>
+                                        <codecname>Apple ProRes 422</codecname>
+                                        <codectypename>Apple ProRes 422</codectypename>
+                                        <codectypecode>apcn</codectypecode>
+                                        <codecvendorcode>appl</codecvendorcode>
+                                        <spatialquality>1024</spatialquality>
+                                        <temporalquality>0</temporalquality>
+                                        <keyframerate>0</keyframerate>
+                                        <datarate>0</datarate>
+                                    </qtcodec>
+                                </data>
+                            </appspecificdata>
+                        </codec>
+                        <width>{width}</width>
+                        <height>{height}</height>
+                        <anamorphic>FALSE</anamorphic>
+                        <pixelaspectratio>square</pixelaspectratio>
+                        <fielddominance>none</fielddominance>
+                        <colordepth>{fps}</colordepth>
+                    </samplecharacteristics>
+                </format>
+                {video_tracks}
+            </video>
+            <audio>
+                <numOutputChannels>2</numOutputChannels>
+                <format>
+                    <samplecharacteristics>
+                        <depth>{audio_depth}</depth>
+                        <samplerate>44100</samplerate>
+                    </samplecharacteristics>
+                </format>
+                <outputs>
+                    <group>
+                        <index>1</index>
+                        <numchannels>1</numchannels>
+                        <downmix>0</downmix>
+                        <channel>
+                            <index>1</index>
+                        </channel>
+                    </group>
+                    <group>
+                        <index>2</index>
+                        <numchannels>1</numchannels>
+                        <downmix>0</downmix>
+                        <channel>
+                            <index>2</index>
+                        </channel>
+                    </group>
+                </outputs>
+                {audio_tracks}
+            </audio>
+        </media>
+        <timecode>
+            <rate>
+                <timebase>{fps}</timebase>
+                <ntsc>FALSE</ntsc>
+            </rate>
+            <string>00:00:00:00</string>
+            <frame>0</frame>
+            <displayformat>NDF</displayformat>
+        </timecode>
+        <labels>
+            <label2>Forest</label2>
+        </labels>
+    </sequence>
+</xmeml>

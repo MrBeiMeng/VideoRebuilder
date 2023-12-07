@@ -149,9 +149,6 @@ class FeatureIteratorCacheImpl(FeatureIteratorI, VideoIteratorImpl):
 
         # print(f'缓存长度 [{len(GlobalFeatureMap().feature_map[video_path].values())}]')
 
-    def set_current_index(self, index):
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)
-        self.current_index = index
 
     def set_image_gpu_output(self):
         self.output_gpu = True

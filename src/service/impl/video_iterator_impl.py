@@ -57,9 +57,8 @@ class VideoIteratorImpl(VideoIteratorI):
         return self.fps_a, (self.width_a, self.height_a)
 
     def get_current_index(self):
-        if self.has_read:
-            return self.current_index - 1
         return self.current_index
+        # return int(self.cap.get(cv2.CAP_PROP_POS_FRAMES))
 
     def set_current_index(self, index):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, index)

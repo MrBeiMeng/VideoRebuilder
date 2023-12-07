@@ -171,6 +171,29 @@ class BLUtils:
         return common_size
 
     @staticmethod
+    def get_filename(filepath):
+        base_name = os.path.basename(filepath)
+        file_name, ext = os.path.splitext(base_name)
+        return file_name + ext
+
+    @staticmethod
+    def get_video_info(file_path):
+
+        name = BLUtils.get_filename(file_path)
+        cap = cv2.VideoCapture(file_path)
+        if not cap.isOpened():
+            print("Error opening video file")
+            return
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width_height = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
+        cap.release()
+        return name, total_frames, fps, width_height
+
+    @staticmethod
     def get_distance(feature_a: np.ndarray, feature_b: np.ndarray):
         feature_a = feature_a.astype(np.uint8)
         feature_b = feature_b.astype(np.uint8)
