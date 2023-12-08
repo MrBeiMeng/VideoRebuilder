@@ -100,7 +100,7 @@ class YourClass:
 
     def run(self):
         iterator = VideoIteratorPrefixImpl(
-            video_path="E:/360MoveData/Users/MrB/Desktop/动物界的生化危机，企鹅吃下百年鲱鱼，结果害自己变成丧尸@不正经的小酥肉.mp4")
+            video_path="E:/data/202312071923.mp4")
 
         while True:
             try:

@@ -11,12 +11,15 @@ from PIL import Image
 from tqdm import tqdm
 
 from src.entity.entitys import KeyFrame
+from src.heigher_service.frame_index_founder_interface import FrameIndexFounderI
+from src.heigher_service.impl.frame_index_founder_impl import FrameIndexFounderImpl
 from src.heigher_service.impl.two_p_fast_dtw_orb_impl import TwoPFastDtwOrbImpl
 from src.heigher_service.impl.two_p_fast_dtw_sift_impl import TwoPFastDtwSiftImpl
 from src.heigher_service.runner_interface import RunnerI
 from src.heigher_service.utils.common import BLUtils
 from src.heigher_service.utils.common_sequence import CSUtils
 from src.heigher_service.utils.frame_cut_util import FrameCutUtilXiGua
+from src.heigher_service.utils.multi_work_utils import MultiWorkUtilsFactory
 from src.service.impl.featuer_iterator_cache_impl import FeatureIteratorCacheImpl, GlobalFeatureMap, GlobalImageMap, \
     GlobalHistList, GlobalAvgHashMap
 from src.service.impl.video_creator_impl import VideoCreatorImpl
@@ -67,6 +70,9 @@ class VideoRebuildFindInAImpl(RunnerI):
         total_distance = 0
         count = 0
         # 直接拿B的帧去A中寻找，第一步找到多个可能值，第二步从这些可能值中找到最长的，保存下来。从这个点继续向后匹配
+
+        frame_founder: FrameIndexFounderI = FrameIndexFounderImpl()
+
         while True:
             try:
                 feature_b = next(iterator_b)
@@ -74,7 +80,8 @@ class VideoRebuildFindInAImpl(RunnerI):
                 break
 
             # 第一步
-            possibly_a_starts = self.find_possibly_a_starts(self.common_size, feature_b)
+            # possibly_a_starts = self.find_possibly_a_starts(self.common_size, feature_b)
+            possibly_a_starts = frame_founder.get_best_math_a_index_list(feature_b)
 
             # 第二步，寻找最长的正确匹配
             # 2.1 从多个起点处获得多个迭代器以及匹配好的长度,不要忘了释放资源
@@ -84,7 +91,7 @@ class VideoRebuildFindInAImpl(RunnerI):
                 continue
 
             # 2.2 筛选出最合理的a迭代器
-            best_a_iterator, longest_len, distance = self._get_best_a_iterator_with_distance(working_a_iterators)
+            best_a_iterator, longest_len, distance = self._get_best_a_iterator(working_a_iterators)
 
             # if longest_len == 1:
             #     continue
@@ -139,46 +146,24 @@ class VideoRebuildFindInAImpl(RunnerI):
 
     def load_video_into_cache(self):
         print('将视频加入内存')
+
         iterator_a = FeatureIteratorCacheImpl(self.dst_path, self.common_size,
                                               self.crop_info_path)
 
-        q = Queue()
+        MultiWorkUtilsFactory().process_utils.do_work('_load_frames_from_video', self.dst_path)
 
-        # 每个进程要负责的长度是多少
-        pre_task = int(iterator_a.get_total_f_num() / self.finder_num)
-        process_list = []
-
-        for i in range(self.finder_num):  # 开启5个子进程执行fun1函数
-            start = i * pre_task
-            end = (i + 1) * pre_task - 1
-            if i == self.finder_num - 1:
-                end = iterator_a.get_total_f_num()
-            print(f'start,end = {start},{end}')
-
-            p = Process(target=self._load_video_into_cache,
-                        args=(self.dst_path, start, end, q, self.common_size, self.crop_info_path))  # 实例化进程对象
-            p.start()
-
-        # for p in process_list:
-        #     p.join()
-        # process_list.clear()
-
-        # print(q.queue)
-        # time.sleep(5)
-
-        # 全局map 初始化
-        GlobalFeatureMap().feature_map[self.dst_path] = {}
+        time.sleep(1)
 
         tbar1 = tqdm(desc='正在加载视频', unit='帧', total=iterator_a.get_total_f_num())
         count = 0
         while True:
+            # print('waiting')
             try:
-                frame_index, feature = q.get(timeout=5)
-                GlobalFeatureMap().feature_map[self.dst_path][frame_index] = feature
-                GlobalAvgHashMap().add_feature(self.dst_path, index=frame_index, feature=feature)
-                count += 1
-                tbar1.update(1)
-                # print(frame_index,end='')
+                (index, feature) = MultiWorkUtilsFactory().process_utils.get_result(5)
+                if feature is not None:
+                    GlobalFeatureMap().feature_map[self.dst_path][index] = feature
+                    tbar1.update(1)
+                    count += 1
             except Exception:
                 break
 
@@ -190,17 +175,13 @@ class VideoRebuildFindInAImpl(RunnerI):
 
         while True:
             try:
-                feature = next(iterator_a)
-                # print(f'读取{iterator_a.get_current_index()}')
-                GlobalAvgHashMap().add_feature(self.dst_path, index=iterator_a.get_current_index(), feature=feature)
+                next(iterator_a)
                 tbar.update(1)
             except StopIteration:
                 break
 
         print('补充完毕')
         tbar.close()
-
-        # q.task_done()
 
         print('将视频加入内存 done')
         iterator_a.release()
@@ -215,7 +196,7 @@ class VideoRebuildFindInAImpl(RunnerI):
                 temp_w_a_iterator.release()
         working_a_iterators.clear()
         print(
-            f'最精确匹配长度为[{longest_len}],distance[total:{total_distance}/pre:{int(total_distance / longest_len)}]')
+            f'最精确匹配长度为[{longest_len}],distance[total:{total_distance}/pre:{int(total_distance / longest_len)}],起点为[{best_a_iterator.get_current_index()}]')
         return best_a_iterator, longest_len, total_distance
 
     def _get_best_a_iterator(self, working_a_iterators):
@@ -228,7 +209,7 @@ class VideoRebuildFindInAImpl(RunnerI):
                 temp_w_a_iterator.release()
         working_a_iterators.clear()
         print(
-            f'最长成功匹配长度为[{longest_len}],distance[total:{total_distance}/pre:{int(total_distance / longest_len)}]')
+            f'最长成功匹配长度为[{longest_len}],distance[total:{total_distance}/pre:{int(total_distance / longest_len)}],起点为[{best_a_iterator.get_current_index()}]')
         return best_a_iterator, longest_len, total_distance
 
     def _generate_working_a_iterators(self, common_size, iterator_b, possibly_a_starts):
@@ -240,13 +221,13 @@ class VideoRebuildFindInAImpl(RunnerI):
                                                                         self.crop_info_path), FeatureIteratorCacheImpl(
                 self.target_path, common_size, self.crop_info_path)
             temp_iterator_a.set_current_index(p_a_s)
-            temp_iterator_b.set_current_index(iterator_b.get_current_index()-1)  # !! 索引问题，因为上一步使用了数组，所以这里b迭代器索引-1
+            temp_iterator_b.set_current_index(iterator_b.get_current_index() - 1)  # !! 索引问题，因为上一步使用了数组，所以这里b迭代器索引-1
 
             # 逐帧比较两个迭代器，遇到第一个合理的值之后，从十个中选一个最合理的再向后匹配
-            temp_feature_b = next(temp_iterator_b)
+            # temp_feature_b = next(temp_iterator_b)
 
             # 寻找最合理的A起点
-            self._set_temp_a_iterator_index_to_best_compare(common_size, temp_feature_b, temp_iterator_a)
+            # self._set_temp_a_iterator_index_to_best_compare(common_size, temp_feature_b, temp_iterator_a)
 
             # if temp_iterator_a.get_current_index() == p_a_s:
             #     raise Exception('严重问题！！！')
@@ -269,7 +250,7 @@ class VideoRebuildFindInAImpl(RunnerI):
                 # if not distance < 10:
                 #     break
 
-                if count > 10 and not distance < 3:
+                if count > 10 and not distance < 5:
                     break
 
                 if temp_distance == 100:
@@ -307,7 +288,7 @@ class VideoRebuildFindInAImpl(RunnerI):
             found = True
             short_a_start_list.append((current_index, distance))
 
-            if len(short_a_start_list) > 10:
+            if len(short_a_start_list) >= 10:
                 short_a_start_list.sort(key=lambda x: x[1])  # 由小到大排序
                 # print('起点差异值数组', short_a_start_list)
 
@@ -357,9 +338,6 @@ class VideoRebuildFindInAImpl(RunnerI):
         # print('结束')
 
     def find_possibly_a_starts(self, common_size, feature_b):
-        # feature_iterator_a = FeatureIteratorCacheImpl(self.dst_path, common_size, self.crop_info_path)
-
-        # possibly_a_starts = self.find_possibly_start_point_cpu_nomal(feature_b, feature_iterator_a)
 
         possibly_a_starts = self._2_step_find(feature_b)
 
