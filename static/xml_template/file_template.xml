@@ -1,5 +1,5 @@
-<file id="{file_id}">
-    <name>{file_name}</name>
+<file id="file-5">
+    <name>{video_name}</name>
     <pathurl>{path_url}</pathurl>
     <rate>
         <timebase>{fps}</timebase>
@@ -31,10 +31,10 @@
         </video>
         <audio>
             <samplecharacteristics>
-                <depth>{audio_depth}</depth>
-                <samplerate>{audio_samplerate}</samplerate>
+                <depth>16</depth>
+                <samplerate>48000</samplerate>
             </samplecharacteristics>
-            <channelcount>{audio_channel_count}</channelcount>
+            <channelcount>2</channelcount>
         </audio>
     </media>
 </file>

@@ -1,5 +1,8 @@
+import os.path
+from urllib import parse
 import uuid
 
+import cv2
 from tqdm import tqdm
 
 from src.heigher_service.utils.common import BLUtils
@@ -125,59 +128,146 @@ def generate_clip_item(a_start, b_start, temp_length, temp_path, temp_file_list)
     return clip_item
 
 
-if __name__ == '__main__':
+class RunnerClass:
+
+    @staticmethod
+    def generate_result_xml_path(video_name):
+        result_dir = '../static/result/'
+        file_name, ext = os.path.splitext(video_name)
+        xml_name = file_name + '.xml'
+        result_file = os.path.join(result_dir, xml_name)
+        result_path = BLUtils.get_unique_filename(result_file)
+        return result_path
+
+    @staticmethod
+    def get_all_info_str(a_path):
+        video_name = BLUtils.get_filename(a_path)
+
+        # 使用 OpenCV 获取视频相关信息
+        cap = cv2.VideoCapture(a_path)
+        if not cap.isOpened():
+            print("Error opening video file")
+            return
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        if fps % 1 < 0.01:
+            fps = int(fps)
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        # 注意：这里假设 file_path 是一个绝对路径
+        file_url = parse.quote(a_path)
+        path_url = f"file://localhost/{file_url}"
+        cap.release()
+
+        return str(total_frames), str(fps), str(video_name), str(width), str(height), str(path_url)
+
+    @staticmethod
+    def generate_base_xml():
+
+        file_template_path = '../static/xml_template/base_template.xml'
+
+        with open(file_template_path, 'r') as f:
+            data = f.read()
+
+        return data
+
+    @staticmethod
+    def generate_file_label():
+
+        file_template_path = '../static/xml_template/file_template.xml'
+
+        with open(file_template_path, 'r') as f:
+            data = f.read()
+
+        return data
+
+    @staticmethod
+    def generate_clip_items(ab_points, audio_index=None):
+        clip_item_path = '../static/xml_template/clip_item_template.xml'
+
+        with open(clip_item_path, 'r') as f:
+            data = f.read()
+            # print(data)
+
+        clip_items = []
+
+        for a_s, b_s, length in ab_points:
+            clip_id = uuid.uuid4().__str__()
+            start, end = b_s, b_s + length
+            in_, out = a_s, a_s + length
+
+            temp_data = data
+            temp_data = temp_data.replace('{clip_item_id}', clip_id)
+            temp_data = temp_data.replace('{start}', str(start))
+            temp_data = temp_data.replace('{end}', str(end))
+            temp_data = temp_data.replace('{in}', str(in_))
+            temp_data = temp_data.replace('{out}', str(out))
+
+            if audio_index is None:
+                temp_data = temp_data.replace('{source_track}', '')
+            elif audio_index == 1:
+                temp_data = temp_data.replace('{source_track}', """<sourcetrack>
+    <mediatype>audio</mediatype>
+    <trackindex>1</trackindex>
+</sourcetrack>""")
+            elif audio_index == 2:
+                temp_data = temp_data.replace('{source_track}', """<sourcetrack>
+   <mediatype>audio</mediatype>
+   <trackindex>2</trackindex>
+</sourcetrack>""")
+            else:
+                raise Exception('未知的参数')
+
+            clip_items.append(temp_data)
+
+        # 如果是视频clip_items 需要把第一个file标签替换掉
+        first_item = clip_items[0]
+        first_item = first_item.replace('<file id="file-5"/>', RunnerClass.generate_file_label())
+
+        clip_items[0] = first_item
+
+        return str.join('\n', clip_items)
+
+
+def main():
     ab_points = get_ab_point_2()
 
-    a_path = "F:/xunleiyunpan/S02E06.Hard.Boiled.Eggy.mkv"
+    a_path = "E:/data/02e06 Source.mp4"
     b_path = "E:/360MoveData/Users/MrB/Desktop/企鹅特工孵化鸭子，用训练作为胎教，结果鸭子一出生就成为特工@不正经的小酥肉.mp4"
 
-    clip_item_path = '../static/xml_template/clip_item_template.xml'
+    video_clip_items = RunnerClass.generate_clip_items(ab_points, None)
+    audio_clip_items_1 = RunnerClass.generate_clip_items(ab_points, 1)
+    audio_clip_items_2 = RunnerClass.generate_clip_items(ab_points, 2)
 
-    with open(clip_item_path, 'r') as f:
-        data = f.read()
-        # print(data)
+    base_xml = RunnerClass.generate_base_xml()
+    base_xml = base_xml.replace('{video_clip_items}', video_clip_items)
+    base_xml = base_xml.replace('{audio_clip_items_1}', audio_clip_items_1)
+    base_xml = base_xml.replace('{audio_clip_items_2}', audio_clip_items_2)
 
-    for a_s, b_s, length in ab_points:
-        clip_id = uuid.uuid4().__str__()
-        start, end = b_s, b_s + length
-        in_, out = a_s, a_s + length
+    # 替换掉所有得主要信息 total_frames fps video_name width height path_url
 
-        temp_data = data
-        temp_data = temp_data.replace('{clip_item_id}', clip_id)
-        temp_data = temp_data.replace('{start}', str(start))
-        temp_data = temp_data.replace('{end}', str(end))
-        temp_data = temp_data.replace('{in}', str(in_))
-        temp_data = temp_data.replace('{out}', str(out))
+    total_frames, fps, video_name, width, height, path_url = RunnerClass.get_all_info_str(a_path)
 
-        print(temp_data)
+    base_xml = base_xml.replace('{total_frames}', total_frames)
+    base_xml = base_xml.replace('{fps}', fps)
+    base_xml = base_xml.replace('{video_name}', video_name)
+    base_xml = base_xml.replace('{width}', width)
+    base_xml = base_xml.replace('{height}', height)
+    base_xml = base_xml.replace('{path_url}', path_url)
 
-# if __name__ == '__main__':
-#     ab_points = get_ab_point()
-#
-#     a_path = "F:/xunleiyunpan/S02E06.Hard.Boiled.Eggy.mkv"
-#     b_path = "E:/360MoveData/Users/MrB/Desktop/企鹅特工孵化鸭子，用训练作为胎教，结果鸭子一出生就成为特工@不正经的小酥肉.mp4"
-#
-#     ps = PrSequenceUtils()
-#     file_list = []
-#
-#     tbar = tqdm(desc='生成xml对象', unit='个', total=len(ab_points))
-#
-#     a_name, a_total_frames, a_fps, a_width_height = BLUtils.get_video_info(a_path)
-#     b_name, b_total_frames, b_fps, b_width_height = BLUtils.get_video_info(a_path)
-#
-#     for a_s, b_s, length in ab_points:
-#         b_clip_item = ClipItem.init(name=b_name, total_frames=b_total_frames, fps=b_fps, file_path=b_path,
-#                                     width_height=b_width_height,
-#                                     in_out=(b_s, b_s + length), start_end=(b_s, b_s + length), p_in_out=(-1, -1))
-#
-#         a_clip_item = ClipItem.init(name=a_name, total_frames=a_total_frames, fps=a_fps, file_path=a_path,
-#                                     width_height=a_width_height,
-#                                     start_end=(a_s, a_s + length), in_out=(b_s, b_s + length), p_in_out=(-1, -1))
-#
-#         ps.add_clip_item('original_video', b_clip_item)
-#         ps.add_clip_item('generated_video', a_clip_item)
-#
-#         tbar.update(1)
-#
-#     tbar.close()
-#     ps.save_to_xml()
+    # print(base_xml)
+    result_path = RunnerClass.generate_result_xml_path(video_name)
+
+    with open(result_path, 'w') as result_video_file:
+        result_video_file.write(base_xml)
+
+    print(f'已生成xml文件 >> {result_path}')
+
+
+if __name__ == '__main__':
+    main()

@@ -12,13 +12,13 @@
               MZ.Sequence.EditingModeGUID="9678af98-a7b7-4bdb-b477-7ac9c8df4a4e"
               MZ.Sequence.VideoTimeDisplayFormat="100" MZ.WorkOutPoint="2540160000000" MZ.WorkInPoint="0"
               MZ.ZeroPoint="0" explodedTracks="true">
-        <uuid>{base_id}</uuid>
+        <uuid>06d746c8-382b-42e5-8688-20d8e434a31b</uuid>
         <duration>{total_frames}</duration>
         <rate>
             <timebase>{fps}</timebase>
             <ntsc>FALSE</ntsc>
         </rate>
-        <name>{base_name}</name>
+        <name>{video_name}</name>
         <media>
             <video>
                 <format>
@@ -55,13 +55,23 @@
                         <colordepth>{fps}</colordepth>
                     </samplecharacteristics>
                 </format>
-                {video_tracks}
+                <track TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25" TL.SQTrackExpanded="0" MZ.TrackTargeted="1">
+                    {video_clip_items}
+                </track>
+                <track TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25" TL.SQTrackExpanded="0" MZ.TrackTargeted="0">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                </track>
+                <track TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25" TL.SQTrackExpanded="0" MZ.TrackTargeted="0">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                </track>
             </video>
             <audio>
                 <numOutputChannels>2</numOutputChannels>
                 <format>
                     <samplecharacteristics>
-                        <depth>{audio_depth}</depth>
+                        <depth>16</depth>
                         <samplerate>44100</samplerate>
                     </samplecharacteristics>
                 </format>
@@ -83,7 +93,60 @@
                         </channel>
                     </group>
                 </outputs>
-                {audio_tracks}
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="0" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+
+                    {audio_clip_items_1}
+
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>1</outputchannelindex>
+                </track>
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="0" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+
+                    {audio_clip_items_2}
+
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>2</outputchannelindex>
+                </track>
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="0" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>1</outputchannelindex>
+                </track>
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="1" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>2</outputchannelindex>
+                </track>
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="0" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>1</outputchannelindex>
+                </track>
+                <track TL.SQTrackAudioKeyframeStyle="0" TL.SQTrackShy="0" TL.SQTrackExpandedHeight="25"
+                       TL.SQTrackExpanded="0" MZ.TrackTargeted="1" PannerCurrentValue="0.5" PannerIsInverted="true"
+                       PannerStartKeyframe="-91445760000000000,0.5,0,0,0,0,0,0" PannerName="平衡"
+                       currentExplodedTrackIndex="1" totalExplodedTrackCount="2" premiereTrackType="Stereo">
+                    <enabled>TRUE</enabled>
+                    <locked>FALSE</locked>
+                    <outputchannelindex>2</outputchannelindex>
+                </track>
             </audio>
         </media>
         <timecode>

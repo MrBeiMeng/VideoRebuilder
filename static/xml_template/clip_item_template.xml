@@ -1,10 +1,10 @@
 <clipitem id="{clip_item_id}" premiereChannelType="stereo">
-    <masterclipid>masterclip-5</masterclipid>
-    <name>S02E06.Hard.Boiled.Eggy.mkv</name>
+    <masterclipid>masterclip-1</masterclipid>
+    <name>{video_name}</name>
     <enabled>TRUE</enabled>
-    <duration>17716</duration>
+    <duration>{total_frames}</duration>
     <rate>
-        <timebase>24</timebase>
+        <timebase>{fps}</timebase>
         <ntsc>FALSE</ntsc>
     </rate>
     <start>{start}</start>
@@ -12,6 +12,7 @@
     <in>{in}</in>
     <out>{out}</out>
     <file id="file-5"/>
+    {source_track}
     <labels>
         <label2>Iris</label2>
     </labels>
