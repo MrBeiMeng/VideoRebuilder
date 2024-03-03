@@ -23,17 +23,64 @@ class FeatureUtils(FeatureUtilsHigherI, FeatureUtilsI):
     #     pass
 
     @staticmethod
+    def get_feature(frame: np.ndarray, dsize_width: int = 64) -> np.ndarray:
+        common_size = GlobalStorage.get('common_size')
+
+        if frame.shape[1] != common_size[0] or frame.shape[0] != common_size[1]:
+            # 计算视频B的长宽比
+            aspect_ratio_b = common_size[0] / common_size[1]  # 宽度/高度
+
+            # 视频A向视频B看齐
+            # 计算中间截取区域的宽度和高度
+            center_y, center_x = frame.shape[0] // 2, frame.shape[1] // 2
+            if frame.shape[1] / frame.shape[0] > aspect_ratio_b:
+                # 如果视频A的长宽比大于视频B的长宽比，则保持高度不变，调整宽度
+                crop_height = frame.shape[0]
+                crop_width = int(crop_height * aspect_ratio_b)
+            else:
+                # 如果视频A的长宽比小于等于视频B的长宽比，则保持宽度不变，调整高度
+                crop_width = frame.shape[1]
+                crop_height = int(crop_width / aspect_ratio_b)
+
+            # 计算裁剪区域的边界
+            crop_x_start = center_x - crop_width // 2
+            crop_x_end = center_x + crop_width // 2
+            crop_y_start = center_y - crop_height // 2
+            crop_y_end = center_y + crop_height // 2
+
+            # 从视频A的中间按照视频B的长宽比截取
+            frame = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
+
+        frame = cv2.resize(frame,
+                           (64, int(common_size[1] / common_size[0] * 64)),
+                           interpolation=cv2.INTER_AREA)  # 调整帧大小来降低计算量
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # # 归一化
+        # # normalized_image = cv2.normalize(frame, None, 0, 255, cv2.NORM_MINMAX)
+        # 直方图均衡化
+        frame = cv2.equalizeHist(frame)
+        feature = cv2.GaussianBlur(frame, (5, 5), 0)
+
+        return feature
+
+    @staticmethod
     def get_a_feature(frame: np.ndarray, dsize_width: int = 64) -> np.ndarray:
-        feature = BLUtils.get_feature(frame, GlobalStorage.get('common_size'))
+
+        feature = FeatureUtils.get_feature(frame)
 
         return FeatureUtils.get_cropped(feature)
 
     @staticmethod
     def get_b_feature(frame: np.ndarray) -> np.ndarray:
+        print(FeatureUtils.get_a_feature(frame).shape)
         return FeatureUtils.get_a_feature(frame)
 
     @staticmethod
     def get_distance(feature_a: np.ndarray, feature_b: np.ndarray) -> float:
+        if feature_a.shape != feature_b.shape:
+            print(feature_a.shape, feature_b.shape)
+
         return BLUtils.get_distance(feature_a, feature_b)
 
     # 下面是FeatureUtilsI 的方法
@@ -53,20 +100,8 @@ class FeatureUtils(FeatureUtilsHigherI, FeatureUtilsI):
         x_end = int(crop_info["x_ratio_end"] * width)
         y_end = int(crop_info["y_ratio_end"] * height)
 
-        # # 计算裁剪区域的边界（如果需要进一步裁剪）
-        # crop_width_start = width // 5
-        # crop_width_end = 4 * width // 5
-        # crop_height_start = height // 5
-        # crop_height_end = 4 * height // 5
-
-        # height, width = frame_b.shape[:2]
-        # crop_width_start = width // 5
-        # crop_width_end = width - 1
-        # crop_height_start = 2 * height // 3
-        # crop_height_end = height - 1
-
         # 裁剪调整分辨率后的frame_a和frame_b的中间3/5的区域
         final_cropped_frame = feature[y_start:y_end,
-                              x_start:x_end] if feature is not None else None
+                              x_start:x_end]
 
         return final_cropped_frame

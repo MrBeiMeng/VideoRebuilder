@@ -13,10 +13,14 @@ class YourClass:
 
         # Load previous crop info if exists
         # self.json_path = 'crop_info.json'
-        self.json_path = 'crop_info_xi_gua.json'
-        if os.path.exists(self.json_path):
-            with open(self.json_path, 'r') as json_file:
-                self.crop_info = json.load(json_file)
+        self.json_path = 'crop_info_madajiasijiadeqie.json'
+        if not os.path.exists(self.json_path):
+            with open(self.json_path, 'w') as json_file:
+                json_file.write(
+                    '{"x_ratio_start": 0.12265625, "y_ratio_start": 0.17777777777777778, "x_ratio_end": 0.9875, '
+                    '"y_ratio_end": 0.7416666666666667}')
+        with open(self.json_path, 'r') as json_file:
+            self.crop_info = json.load(json_file)
 
         pass  # your initialization code
 
@@ -100,7 +104,7 @@ class YourClass:
 
     def run(self):
         iterator = VideoIteratorPrefixImpl(
-            video_path="E:/data/202312071923.mp4")
+            video_path="E:/data/Penguins/44 大战怪怪鱼 (SnakeHead).mp4")
 
         while True:
             try:
@@ -109,25 +113,6 @@ class YourClass:
                 raise Exception("不足360")
 
             self.get_crop_info(frame)
-
-            # # Load crop info and apply to frame
-            # x_start = int(self.crop_info['x_ratio_start'] * frame.shape[1])
-            # y_start = int(self.crop_info['y_ratio_start'] * frame.shape[0])
-            # x_end = int(self.crop_info['x_ratio_end'] * frame.shape[1])
-            # y_end = int(self.crop_info['y_ratio_end'] * frame.shape[0])
-            #
-            # # cut_frame = frame[y_start:y_end, x_start:x_end]
-            #
-            # # Draw a rectangle on the frame instead of cropping it
-            # frame_with_rectangle = frame.copy()
-            # cv2.rectangle(frame_with_rectangle, (x_start, y_start), (x_end, y_end), (0, 255, 0), 2)
-            #
-            # b_frame = YourClass.resize_image(frame_with_rectangle)
-            # cv2.imshow("Frame", frame_with_rectangle)
-            # cv2.waitKey(0)
-
-            # 进行cut操作
-            # break
 
 
 if __name__ == '__main__':

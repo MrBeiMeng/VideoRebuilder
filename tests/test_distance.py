@@ -4,17 +4,17 @@ from src.heigher_service.utils.common import BLUtils
 from src.service.impl.video_iterator_impl import VideoIteratorImpl
 
 if __name__ == '__main__':
-    crop_info_path = '../static/crop_info_xi_gua.json'
+    crop_info_path = '../static/crop_info_madajiasijiadeqie.json'
 
-    a_path = "F:/xunleiyunpan/S02E06.Hard.Boiled.Eggy.mkv"
-    b_path = "E:/360MoveData/Users/MrB/Desktop/企鹅特工孵化鸭子，用训练作为胎教，结果鸭子一出生就成为特工@不正经的小酥肉.mp4"
+    a_path = "F:/xunleiyunpan/S02E01.The.Red.Squirrel.mkv"
+    b_path = "F:/penguins season 2/1 传奇特务 (The Red Squirrel).mp4"
 
     common_size = BLUtils.get_common_size(a_path, b_path)
 
     iterator_a = VideoIteratorImpl(a_path)
     iterator_b = VideoIteratorImpl(b_path)
 
-    iterator_a.set_current_index(1737)
+    iterator_a.set_current_index(0)
     print(iterator_a.get_current_index())
     frame_a = next(iterator_a)
     print(iterator_a.get_current_index())

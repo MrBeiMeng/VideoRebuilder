@@ -5,6 +5,7 @@ from src.heigher_service.runner_interface import RunnerI
 
 import os
 
+from src.heigher_service.utils.global_storage import GlobalStorage
 from src.work.impl_works.video_rebuild_work_impl import VideoRebuildWorkImpl
 from src.work.work_interface import WorkI
 
@@ -20,9 +21,21 @@ from src.work.work_interface import WorkI
 #
 #     runner.run()
 
+# cache_path = "static/cache/cache_madajiasijiadeqie.json"
+cache_path = "static/cache/cache_info_xi_gua.json"
+GlobalStorage.parse(cache_path)
 
 if __name__ == '__main__':
     worker: WorkI = VideoRebuildWorkImpl("E:/data/02e06 Source.mp4",
                                          "E:/data/202312071923.mp4")
 
     worker.do_work()
+
+# cache_path = "static/cache/cache_madajiasijiadeqie.json"
+# GlobalStorage.parse(cache_path)
+#
+# if __name__ == '__main__':
+#     worker: WorkI = VideoRebuildWorkImpl("F:/xunleiyunpan/S01E45.Jiggles.mkv",
+#                                          "E:/data/Penguins/45 我爱绿绿 (Jiggles).mp4")
+#
+#     worker.do_work()
