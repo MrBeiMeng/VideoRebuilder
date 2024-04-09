@@ -26,7 +26,9 @@
 
 ### 演示 🎥
 
-<iframe src="//player.bilibili.com/player.html?aid=1402938660&bvid=BV1Gr42147DN&cid=1499598873&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="height:560px"> </iframe>
+演示视频 哔哩哔哩
+
+![yanshishipin](./assets/yanshishipin.png)
 
 ## 如何使用 🛠
 
