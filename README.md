@@ -1,6 +1,7 @@
 <div style="width: 100%;display: flex;justify-content: center;">
-   <img src="./assets/logo.png" alt="屏幕截图 2024-03-03 173116" style="width:100px;" />
+   <img src="./assets/logo.png" alt="屏幕截图 2024-03-03 173116" style="width:300px;" />
 </div>
+
 
 
 #🎬 VideoRebuilder
