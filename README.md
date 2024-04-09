@@ -26,7 +26,7 @@
 
 ### 演示 🎥
 
-<img src="https://ccurj.oss-cn-beijing.aliyuncs.com/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91new.gif" alt="演示视频">
+<iframe src="//player.bilibili.com/player.html?aid=1402938660&bvid=BV1Gr42147DN&cid=1499598873&p=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="height:560px"> </iframe>
 
 ## 如何使用 🛠
 
