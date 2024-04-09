@@ -1,10 +1,8 @@
-
-
 <img src="./assets/屏幕截图 2024-03-03 173116-1712659441444-2.png" alt="屏幕截图 2024-03-03 173116" style="zoom: 15%;" />
 
 
 
-#🎬  VideoRebuilder
+#🎬 VideoRebuilder
 
 **📌 描述**：现在我们可以通过视频素材 **重建剪辑**。
 
@@ -12,12 +10,10 @@
 
 ### 核心功能 ✨
 
-- [x] 重建剪辑  
+- [x] 重建剪辑
 - [x] 去水印
 - [x] 去字幕
 - [x] 识别字幕
-
-
 
 ### 原理 💡
 
@@ -26,16 +22,9 @@
 - **逐帧匹配**：通过SSIM算法计算帧之间的差异值，确定最佳匹配段【自定义匹配区域】。
 - **灵活的输出格式**：可以重建剪辑并导出为PRXML文件，方便在Adobe Premiere Pro中二次编辑，或直接导出为视频文件。
 
-
-
 ### 演示 🎥
 
-![演示视频new](https://ccurj.oss-cn-beijing.aliyuncs.com/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91new.gif)
-
-
-
-
-
+<img src="https://ccurj.oss-cn-beijing.aliyuncs.com/%E6%BC%94%E7%A4%BA%E8%A7%86%E9%A2%91new.gif" alt="演示视频">
 
 ## 如何使用 🛠
 
@@ -51,8 +40,6 @@
    runner: RunnerI = VideoRebuildFindInAImpl(素材地址,剪辑地址)
    runner.run()
    ```
-   
-   
 
 ## 贡献 💡
 
