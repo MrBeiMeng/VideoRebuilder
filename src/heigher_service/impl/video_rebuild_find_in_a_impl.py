@@ -32,7 +32,7 @@ from SSIM_PIL import compare_ssim as compare_ssim_gpu
 
 class VideoRebuildFindInAImpl(RunnerI):
 
-    def __init__(self, dst_path: str, target_path: str, output_path=None, crop_info_path=None):
+    def __init__(self, dst_path: str, target_path: str, output_path=None):
         self.dst_path = dst_path
         self.target_path = target_path
 
@@ -41,14 +41,13 @@ class VideoRebuildFindInAImpl(RunnerI):
         else:
             self.output_path = BLUtils.get_unique_filename(self.target_path)
 
-        self.crop_info_path = crop_info_path or 'static/crop_info_xi_gua.json'
+        self.crop_info_path = 'static/crop_info_xi_gua.json'
 
         self.finder_num = 5
 
         # 获取两个视频的最小公共 size
         self.common_size = BLUtils.get_common_size(self.dst_path, self.target_path)
         print(f'计算common_size = [{self.common_size}]')
-
         # --局部变量！
         # self.pool = Pool(self.finder_num)
 

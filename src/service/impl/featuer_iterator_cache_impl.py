@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 
 from src.heigher_service.utils.common import BLUtils
-from src.heigher_service.utils.feature_utils import FeatureUtils
 from src.service.impl.video_iterator_impl import VideoIteratorImpl
 from src.service.video_iterator_interface import FeatureIteratorI
 
@@ -150,6 +149,7 @@ class FeatureIteratorCacheImpl(FeatureIteratorI, VideoIteratorImpl):
 
         # print(f'缓存长度 [{len(GlobalFeatureMap().feature_map[video_path].values())}]')
 
+
     def set_image_gpu_output(self):
         self.output_gpu = True
 
@@ -166,9 +166,8 @@ class FeatureIteratorCacheImpl(FeatureIteratorI, VideoIteratorImpl):
                 ret, frame = self.cap.read()
                 # print('读取帧')
                 if ret:
-                    # feature = BLUtils.get_cropped_feature(frame=frame, common_size=self.common_size,
-                    #                                       crop_info_path=self.crop_info_path)
-                    feature = FeatureUtils.get_cropped(FeatureUtils.get_feature(frame))
+                    feature = BLUtils.get_cropped_feature(frame=frame, common_size=self.common_size,
+                                                          crop_info_path=self.crop_info_path)
                     GlobalFeatureMap().feature_map[self.video_path][self.current_index] = feature
                 else:
                     raise Exception(f"迭代错误{self.current_index}/{self.video_path}/{self.get_video_info()}")
